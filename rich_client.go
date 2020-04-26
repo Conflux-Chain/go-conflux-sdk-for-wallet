@@ -26,7 +26,7 @@ import (
 
 // RichClient contains client, cfx-scan-backend server and contract-manager server
 //
-// RichClient is mainly for bitpie wallet, it's methods need request centralized servers
+// RichClient is the client for wallet, it's methods need request centralized servers
 // cfx-scan-backend and contract-manager in order to apply better performance.
 type RichClient struct {
 	cfxScanBackend  *scanServer
@@ -41,7 +41,7 @@ type scanServer struct {
 	HTTPRequester sdk.HTTPRequester
 }
 
-// ServerConfig represents cfx-scan-backend and contract-manager configurations
+// ServerConfig represents cfx-scan-backend and contract-manager configurations, because centralized servers maybe changed.
 type ServerConfig struct {
 	CfxScanBackendSchema  string
 	CfxScanBackendDomain  string
@@ -54,6 +54,7 @@ type ServerConfig struct {
 	ContractQueryPath      string
 }
 
+// default value of server config
 var (
 	accountBalancesPath    = "/api/account/token/list"
 	accountTokenTxListPath = "/future/transfer/list"
@@ -185,7 +186,7 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 
 // GetAccountTokenTransfers returns address releated transactions,
 // the tokenIdentifier represnets the token contract address and it is optional,
-// when tokenIdentifier is specicied it returns token transfer events about the address,
+// when tokenIdentifier is specicied it returns token transfer events related the address,
 // otherwise returns transactions about main coin.
 func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdentifier *types.Address, pageNumber, pageSize uint) (*richtypes.TokenTransferEventList, error) {
 	params := make(map[string]interface{})
@@ -204,8 +205,8 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", accountTokenTxListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
-		// return &tts, nil
 		tteList = &tts
+
 	} else {
 		// when tokenIdentifier is nil return transaction of main coin
 		var txs richtypes.TransactionList
