@@ -15,18 +15,18 @@ type RichClient struct {
 
 RichClient contains client, cfx-scan-backend server and contract-manager server
 
-RichClient is mainly for bitpie wallet, it's methods need request centralized
+RichClient is the client for wallet, it's methods need request centralized
 servers cfx-scan-backend and contract-manager in order to apply better
 performance.
 
 #### func  NewRichClient
 
 ```go
-func NewRichClient(client *sdk.Client, config *ServerConfig) *RichClient
+func NewRichClient(client *sdk.Client, configOption *ServerConfig) *RichClient
 ```
 NewRichClient create new rich client with client and server config.
 
-The config will use default value when it is nil
+The fields of config will use default value when it's empty
 
 #### func (*RichClient) CreateSendTokenTransaction
 
@@ -44,8 +44,8 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 ```
 GetAccountTokenTransfers returns address releated transactions, the
 tokenIdentifier represnets the token contract address and it is optional, when
-tokenIdentifier is specicied it returns token transfer events about the address,
-otherwise returns transactions about main coin.
+tokenIdentifier is specicied it returns token transfer events related the
+address, otherwise returns transactions about main coin.
 
 #### func (*RichClient) GetAccountTokens
 
@@ -74,10 +74,10 @@ node.
 
 ```go
 type ServerConfig struct {
-        CfxScanBackendSchema  string
-        CfxScanBackendDomain  string
-        ContractManagerSchema string
-        ContractManagerDomain string
+        CfxScanBackendSchema   string
+        CfxScanBackendAddress  string
+        ContractManagerSchema  string
+        ContractManagerAddress string
 
         AccountBalancesPath    string
         AccountTokenTxListPath string
@@ -86,4 +86,5 @@ type ServerConfig struct {
 }
 ```
 
-ServerConfig represents cfx-scan-backend and contract-manager configurations
+ServerConfig represents cfx-scan-backend and contract-manager configurations,
+because centralized servers maybe changed.

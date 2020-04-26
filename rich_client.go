@@ -37,16 +37,16 @@ type RichClient struct {
 // scanServer represents a centralized server
 type scanServer struct {
 	Scheme        string
-	Domain        string
+	Address       string
 	HTTPRequester sdk.HTTPRequester
 }
 
 // ServerConfig represents cfx-scan-backend and contract-manager configurations, because centralized servers maybe changed.
 type ServerConfig struct {
-	CfxScanBackendSchema  string
-	CfxScanBackendDomain  string
-	ContractManagerSchema string
-	ContractManagerDomain string
+	CfxScanBackendSchema   string
+	CfxScanBackendAddress  string
+	ContractManagerSchema  string
+	ContractManagerAddress string
 
 	AccountBalancesPath    string
 	AccountTokenTxListPath string
@@ -63,50 +63,50 @@ var (
 
 	cfxScanBackend = &scanServer{
 		Scheme:        "http",
-		Domain:        "101.201.103.131:8885", //"testnet-jsonrpc.conflux-chain.org:18084",
+		Address:       "101.201.103.131:8885", //"testnet-jsonrpc.conflux-chain.org:18084",
 		HTTPRequester: &http.Client{},
 	}
 
 	contractManager = &scanServer{
 		Scheme:        "http",
-		Domain:        "101.201.103.131:8886", //"13.75.69.106:8886",
+		Address:       "101.201.103.131:8886", //"13.75.69.106:8886",
 		HTTPRequester: &http.Client{},
 	}
 )
 
 // NewRichClient create new rich client with client and server config.
 //
-// The config will use default value when it is nil
-func NewRichClient(client *sdk.Client, config *ServerConfig) *RichClient {
+// The fields of config will use default value when it's empty
+func NewRichClient(client *sdk.Client, configOption *ServerConfig) *RichClient {
 
-	if config != nil {
-		if config.CfxScanBackendSchema != "" {
-			cfxScanBackend.Scheme = config.CfxScanBackendSchema
-		}
-
-		if config.CfxScanBackendDomain != "" {
-			cfxScanBackend.Domain = config.CfxScanBackendDomain
+	if configOption != nil {
+		if configOption.CfxScanBackendSchema != "" {
+			cfxScanBackend.Scheme = configOption.CfxScanBackendSchema
 		}
 
-		if config.ContractManagerSchema != "" {
-			contractManager.Scheme = config.ContractManagerSchema
+		if configOption.CfxScanBackendAddress != "" {
+			cfxScanBackend.Address = configOption.CfxScanBackendAddress
 		}
 
-		if config.ContractManagerDomain != "" {
-			cfxScanBackend.Domain = config.ContractManagerDomain
+		if configOption.ContractManagerSchema != "" {
+			contractManager.Scheme = configOption.ContractManagerSchema
 		}
 
-		if config.AccountBalancesPath != "" {
-			accountBalancesPath = config.AccountBalancesPath
+		if configOption.ContractManagerAddress != "" {
+			contractManager.Address = configOption.ContractManagerAddress
 		}
-		if config.AccountTokenTxListPath != "" {
-			accountTokenTxListPath = config.AccountTokenTxListPath
+
+		if configOption.AccountBalancesPath != "" {
+			accountBalancesPath = configOption.AccountBalancesPath
 		}
-		if config.TxListPath != "" {
-			txListPath = config.TxListPath
+		if configOption.AccountTokenTxListPath != "" {
+			accountTokenTxListPath = configOption.AccountTokenTxListPath
 		}
-		if config.ContractQueryPath != "" {
-			contractQueryPath = config.ContractQueryPath
+		if configOption.TxListPath != "" {
+			txListPath = configOption.TxListPath
+		}
+		if configOption.ContractQueryPath != "" {
+			contractQueryPath = configOption.ContractQueryPath
 		}
 	}
 
@@ -132,14 +132,14 @@ func (s *scanServer) URL(path string, params map[string]interface{}) string {
 		q.Add(key, fmt.Sprintf("%+v", val))
 	}
 	encodedParams := q.Encode()
-	result := fmt.Sprintf("%+v://%+v%+v?%+v", s.Scheme, s.Domain, path, encodedParams)
+	result := fmt.Sprintf("%+v://%+v%+v?%+v", s.Scheme, s.Address, path, encodedParams)
 	return result
 }
 
 // Get sends a "Get" request and fill the unmarshaled value of field "Result" in response to unmarshaledResult
 func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaledResult interface{}) error {
 	client := s.HTTPRequester
-	// fmt.Println("request url:", s.URL(path, params))
+	fmt.Println("request url:", s.URL(path, params))
 	rspBytes, err := client.Get(s.URL(path, params))
 	if err != nil {
 		return err
@@ -259,7 +259,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 					}
 					_tte.BlockHash = *tx.BlockHash
 					_tte.RevertRate = rate
-					fmt.Printf("after set blockhash %v and rate %v\n", _tte.BlockHash, _tte.RevertRate)
+					// fmt.Printf("after set blockhash %v and rate %v\n", _tte.BlockHash, _tte.RevertRate)
 				}
 
 			}(&tteList.List[excuted])

@@ -5,7 +5,7 @@
 # Conflux Golang API For Wallet
 This is a SDK for developers who would like to port a wallet with Conflux network.
 
-Conflux has provided [conflux-go-sdk]() to support the operation of communicating with nodes. The conflux-go-sdk-for-wallet is developed for the convenience of wallet development, there are some complex APIs are provided through communicate with centralized server. Currently, it is mainly for querying summary of user transactions and token transfer event.
+Conflux has provided [conflux-go-sdk](https://github.com/Conflux-Chain/go-conflux-sdk) to support the operation of communicating with nodes, accounts manager and contract operation. The conflux-go-sdk-for-wallet is developed for the convenience of wallet development, there are some complex APIs are provided through communicate with centralized server. Currently, it is mainly for querying summary of user transactions and token transfer event.
 
 The Conflux Golang API allows any Golang client to interact with a local or remote Conflux node based on JSON-RPC 2.0 protocol. With Conflux Golang API, user can easily manage accounts, send transactions, deploy smart contracts and query blockchain information.
 
