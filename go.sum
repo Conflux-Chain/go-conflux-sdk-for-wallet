@@ -16,6 +16,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/Conflux-Chain/go-conflux-sdk v0.0.0-20200306044524-3787b268f659 h1:FKfsNHPXXTvIXs70wbClC8H4uRNPBY+ceADuj0XNh4I=
 github.com/Conflux-Chain/go-conflux-sdk v0.0.0-20200306044524-3787b268f659/go.mod h1:3M2i44xACx4Llb3Bm4gTzVz2HajIxCPpU45QOkKZt1U=
 github.com/Conflux-Chain/go-conflux-sdk v0.0.0-20200424084102-93b897dc633e h1:78el7d7s2jr6Y5uhqi+PGBZyXEvVm3k2BM48ftVONF0=
+github.com/Conflux-Chain/go-conflux-sdk v0.1.0 h1:Gk3mqAXYWpGGGkPmhWLMdrw12LLL+e63BtQebiy9YM4=
+github.com/Conflux-Chain/go-conflux-sdk v0.1.0/go.mod h1:DjUJyHIH+cWGelBcdX2PXJNbCFrkU09vH83lqaAN7TE=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/Shopify/sarama v1.26.1/go.mod h1:NbSGBSSndYaIhRcBtY9V0U7AyH+x71bG668AuWys/yU=

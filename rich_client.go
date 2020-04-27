@@ -15,7 +15,8 @@ import (
 	"sync"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
-	"github.com/Conflux-Chain/go-conflux-sdk/constants"
+
+	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/utils"
 
@@ -223,7 +224,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 
 	// get epoch number and revert rate of every transaction
 	all := len(tteList.List)
-	con := constants.RpcConcurrence
+	con := constants.RPCConcurrence
 	excuted := 0
 	errorStrs := []string{}
 	for {

@@ -31,7 +31,7 @@ func TestGet(t *testing.T) {
 	var stu student
 	s := scanServer{
 		Scheme:        "http",
-		Domain:        "test",
+		Address:        "test",
 		HTTPRequester: &httpRequster,
 	}
 
