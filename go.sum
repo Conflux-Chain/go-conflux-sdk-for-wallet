@@ -258,6 +258,10 @@ github.com/wangdayong228/go-conflux-sdk v0.1.0 h1:f4vFJdWEUyT8+jxXSSx9dZdgktxPgd
 github.com/wangdayong228/go-conflux-sdk v0.1.0/go.mod h1:DjUJyHIH+cWGelBcdX2PXJNbCFrkU09vH83lqaAN7TE=
 github.com/wangdayong228/go-conflux-sdk v0.1.1-0.20200425095953-b7697c505043 h1:mnH3BHrfxAYGdrr04OY/nlV/oCbdlIdzTd/eR9D7xRk=
 github.com/wangdayong228/go-conflux-sdk v0.1.1-0.20200425095953-b7697c505043/go.mod h1:DjUJyHIH+cWGelBcdX2PXJNbCFrkU09vH83lqaAN7TE=
+github.com/wangdayong228/go-conflux-sdk v0.1.1-0.20200428064122-ab1dad1c9655 h1:mjZKPVnITfaNUGCqIDItaZvZRHFEGhPSYFAXGQOzsSQ=
+github.com/wangdayong228/go-conflux-sdk v0.1.1-0.20200428064122-ab1dad1c9655/go.mod h1:DjUJyHIH+cWGelBcdX2PXJNbCFrkU09vH83lqaAN7TE=
+github.com/wangdayong228/go-conflux-sdk v0.1.1-0.20200428094011-6b9d65730f73 h1:FeKLQfwDIYvH6BNNOtRdSv2YcYCsJO7i12P7+cYUEKw=
+github.com/wangdayong228/go-conflux-sdk v0.1.1-0.20200428094011-6b9d65730f73/go.mod h1:DjUJyHIH+cWGelBcdX2PXJNbCFrkU09vH83lqaAN7TE=
 github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208/go.mod h1:IotVbo4F+mw0EzQ08zFqg7pK3FebNXpaMsRy2RT+Ees=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v1.0.0/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=

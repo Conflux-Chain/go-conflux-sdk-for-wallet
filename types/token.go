@@ -27,8 +27,8 @@ type TokenWithBalance struct {
 
 // TokenWithBlanceList describes list of token with balance
 type TokenWithBlanceList struct {
-	Total uint64  `json:"total"`
-	List  []Token `json:"list"`
+	Total uint64             `json:"total"`
+	List  []TokenWithBalance `json:"list"`
 }
 
 // TokenTransferEvent describes token transfer event information
