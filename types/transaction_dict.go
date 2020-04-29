@@ -10,13 +10,13 @@ import (
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 )
 
-// TxDictBase is another representation of transaction which is designed for bitpie wallet
+// TxDictBase is another representation of unsigned transaction which is designed for bitpie wallet
 type TxDictBase struct {
 	Inputs  []TxUnit `json:"inputs"`
 	Outputs []TxUnit `json:"outputs"`
 }
 
-// TxDict is another representation of transaction which is designed for bitpie wallet
+// TxDict is another representation of confirmed transaction which is designed for bitpie wallet
 type TxDict struct {
 	TxDictBase
 	TxHash types.Hash `json:"tx_hash"`
