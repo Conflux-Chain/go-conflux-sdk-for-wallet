@@ -329,8 +329,8 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 	return tx, nil
 }
 
-func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, contract sdk.Contractor, to types.Address, amount *hexutil.Big) (*[]byte, error) {
-	var data *[]byte
+func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, contract sdk.Contractor, to types.Address, amount *hexutil.Big) ([]byte, error) {
+	var data []byte
 	var err error
 
 	// erc20 or fanscoin method signature are transfer(address,uint256)
