@@ -1,15 +1,46 @@
-# walletsdk
---
-    import "github.com/Conflux-Chain/go-conflux-sdk-for-wallet"
+# API Reference
+## Getting Started
+The go-conflux-sdk-for-wallet module is a collection of packages which contain specific functionality for the wallet develop of conflux ecosystem.
+
+- The package `walletsdk` offer complex APIs are provided through communicate with centralized server. currently, it is mainly for querying summary of user transactions and token transfer event.
+
+## Installation
+You can get Conflux Golang API For Wallet directly or use go module as below
+```
+go get github.com/Conflux-Chain/go-conflux-sdk-for-wallet
+```
+You can also add the Conflux Golang API For Wallet into vendor folder.
+```
+govendor fetch github.com/Conflux-Chain/go-conflux-sdk-for-wallet
+```
+
+After that you need to create a rich client instance with sdk.client and server config
+```go
+url:= "http://testnet-jsonrpc.conflux-chain.org:12537"
+client, err := sdk.NewClient(url)
+if err != nil {
+	fmt.Println("new client error:", err)
+	return
+}
+am := sdk.NewAccountManager("./keystore")
+client.SetAccountManager(am)
+
+config := new(richsdk.ServerConfig)
+//main net
+config.CfxScanBackendDomain = "47.102.164.229:8885"
+config.ContractManagerDomain = "139.196.47.91:8886"
+rc := richsdk.NewRichClient(client, config)
+```
+## package walletsdk
+```
+import "github.com/Conflux-Chain/go-conflux-sdk-for-wallet"
+```
 
 
-## Usage
-
-#### type RichClient
+### type RichClient
 
 ```go
 type RichClient struct {
-        Client *sdk.Client
 }
 ```
 
@@ -22,7 +53,7 @@ performance.
 #### func  NewRichClient
 
 ```go
-func NewRichClient(client *sdk.Client, configOption *ServerConfig) *RichClient
+func NewRichClient(client sdk.ClientOperator, configOption *ServerConfig) *RichClient
 ```
 NewRichClient create new rich client with client and server config.
 
@@ -55,6 +86,13 @@ func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenW
 GetAccountTokens returns coin balance and all token balances of specified
 address
 
+#### func (*RichClient) GetClient
+
+```go
+func (rc *RichClient) GetClient() sdk.ClientOperator
+```
+GetClient returns client
+
 #### func (*RichClient) GetTokenByIdentifier
 
 ```go
@@ -70,21 +108,76 @@ func (rc *RichClient) GetTransactionsFromPool() (*[]types.Transaction, error)
 GetTransactionsFromPool returns all pending transactions in mempool of conflux
 node.
 
-#### type ServerConfig
+it is only work on local conflux node currently.
+
+### type ServerConfig
 
 ```go
 type ServerConfig struct {
-        CfxScanBackendSchema   string
-        CfxScanBackendAddress  string
-        ContractManagerSchema  string
-        ContractManagerAddress string
+	CfxScanBackendSchema   string
+	CfxScanBackendAddress  string
+	ContractManagerSchema  string
+	ContractManagerAddress string
 
-        AccountBalancesPath    string
-        AccountTokenTxListPath string
-        TxListPath             string
-        ContractQueryPath      string
+	AccountBalancesPath    string
+	AccountTokenTxListPath string
+	TxListPath             string
+	ContractQueryPath      string
 }
 ```
 
 ServerConfig represents cfx-scan-backend and contract-manager configurations,
 because centralized servers maybe changed.
+
+### type TxDictBaseConverter
+
+```go
+type TxDictBaseConverter struct {
+}
+```
+
+TxDictBaseConverter contains methods for convert other types to TxDictBase
+
+#### func (*TxDictBaseConverter) ConvertByUnsignedTransaction
+
+```go
+func (tc *TxDictBaseConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransaction) *richtypes.TxDictBase
+```
+ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase
+
+### type TxDictConverter
+
+```go
+type TxDictConverter struct {
+}
+```
+
+TxDictConverter contains methods for convert other types to TxDict
+
+#### func  NewTxDictConverter
+
+```go
+func NewTxDictConverter(rc RichClientOperator) *TxDictConverter
+```
+NewTxDictConverter creates a TxDictConverter instance
+
+#### func (*TxDictConverter) ConvertByRichTransaction
+
+```go
+func (tc *TxDictConverter) ConvertByRichTransaction(tx *richtypes.Transaction) (*richtypes.TxDict, error)
+```
+ConvertByRichTransaction convert richtypes.Transaction to TxDict
+
+#### func (*TxDictConverter) ConvertByTokenTransferEvent
+
+```go
+func (tc *TxDictConverter) ConvertByTokenTransferEvent(tte *richtypes.TokenTransferEvent) (*richtypes.TxDict, error)
+```
+ConvertByTokenTransferEvent converts richtypes.TokenTransferEvent to TxDict
+
+#### func (*TxDictConverter) ConvertByTransaction
+
+```go
+func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction) (*richtypes.TxDict, error)
+```
+ConvertByTransaction converts types.Transaction to TxDict

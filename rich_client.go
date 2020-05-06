@@ -18,7 +18,6 @@ import (
 
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
-	"github.com/Conflux-Chain/go-conflux-sdk/utils"
 
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -32,7 +31,7 @@ import (
 type RichClient struct {
 	cfxScanBackend  *scanServer
 	contractManager *scanServer
-	Client          *sdk.Client
+	client          sdk.ClientOperator
 }
 
 // scanServer represents a centralized server
@@ -78,7 +77,7 @@ var (
 // NewRichClient create new rich client with client and server config.
 //
 // The fields of config will use default value when it's empty
-func NewRichClient(client *sdk.Client, configOption *ServerConfig) *RichClient {
+func NewRichClient(client sdk.ClientOperator, configOption *ServerConfig) *RichClient {
 
 	if configOption != nil {
 		if configOption.CfxScanBackendSchema != "" {
@@ -118,6 +117,11 @@ func NewRichClient(client *sdk.Client, configOption *ServerConfig) *RichClient {
 	}
 
 	return &richClient
+}
+
+// GetClient returns client
+func (rc *RichClient) GetClient() sdk.ClientOperator {
+	return rc.client
 }
 
 // setHTTPRequester for unit test
@@ -243,7 +247,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 				defer wg.Done()
 
 				//for getting block hash
-				tx, err := rc.Client.GetTransactionByHash(_tte.TransactionHash)
+				tx, err := rc.client.GetTransactionByHash(_tte.TransactionHash)
 				if err != nil {
 					errMsg := fmt.Sprintf("get transaction by hash %+v error: %+v", _tte.TransactionHash, err.Error())
 					errorStrs = append(errorStrs, errMsg)
@@ -252,7 +256,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 
 				if tx.BlockHash != nil {
 					//for getting revert rate
-					rate, err := rc.Client.GetBlockRevertRateByHash(*tx.BlockHash)
+					rate, err := rc.client.GetBlockRevertRateByHash(*tx.BlockHash)
 					if err != nil {
 						errMsg := fmt.Sprintf("get block revert rate by hash %+v error: %+v", tx.BlockHash, err.Error())
 						errorStrs = append(errorStrs, errMsg)
@@ -286,7 +290,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 // It supports erc20, erc777, fanscoin at present
 func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Address, amount *hexutil.Big, tokenIdentifier *types.Address) (*types.UnsignedTransaction, error) {
 	if tokenIdentifier == nil {
-		tx, err := rc.Client.CreateUnsignedTransaction(from, to, amount, nil)
+		tx, err := rc.client.CreateUnsignedTransaction(from, to, amount, nil)
 		if err != nil {
 			msg := fmt.Sprintf("Create Unsigned Transaction by from {%+v}, to {%+v}, amount {%+v} error", from, to, amount)
 			return nil, types.WrapError(err, msg)
@@ -305,7 +309,7 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return nil, types.WrapError(err, msg)
 	}
 
-	contract, err := rc.Client.GetContract(cInfo.ABI, &to)
+	contract, err := rc.client.GetContract(cInfo.ABI, &to)
 	if err != nil {
 		msg := fmt.Sprintf("get contract by ABI {%+v}, to {%+v} error", cInfo.ABI, to)
 		return nil, types.WrapError(err, msg)
@@ -317,7 +321,7 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return nil, types.WrapError(err, msg)
 	}
 
-	tx, err := rc.Client.CreateUnsignedTransaction(from, to, nil, data)
+	tx, err := rc.client.CreateUnsignedTransaction(from, to, nil, data)
 	if err != nil {
 		msg := fmt.Sprintf("create transaction with params {from: %+v, to: %+v, data: %+v} error ", from, to, data)
 		return nil, types.WrapError(err, msg)
@@ -325,8 +329,8 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 	return tx, nil
 }
 
-func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, contract sdk.Contractor, to types.Address, amount *hexutil.Big) (*[]byte, error) {
-	var data *[]byte
+func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, contract sdk.Contractor, to types.Address, amount *hexutil.Big) ([]byte, error) {
+	var data []byte
 	var err error
 
 	// erc20 or fanscoin method signature are transfer(address,uint256)
@@ -391,24 +395,19 @@ func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenW
 }
 
 // GetTransactionsFromPool returns all pending transactions in mempool of conflux node.
+//
+// it is only work on local conflux node currently.
 func (rc *RichClient) GetTransactionsFromPool() (*[]types.Transaction, error) {
-	var result interface{}
+	var txs []types.Transaction
 
-	if err := rc.Client.CallRPC(&result, "getTransactionsFromPool"); err != nil {
+	if err := rc.client.CallRPC(&txs, "getTransactionsFromPool"); err != nil {
 		msg := fmt.Sprintf("rpc getTransactionsFromPool error")
 		return nil, types.WrapError(err, msg)
 	}
 
-	if result == nil {
+	if txs == nil {
 		return nil, nil
 	}
 
-	var tx []types.Transaction
-	if err := utils.UnmarshalRPCResult(result, &tx); err != nil {
-		msg := fmt.Sprintf("UnmarshalRPCResult %+v error", result)
-		return nil, types.WrapError(err, msg)
-	}
-
-	return &tx, nil
-
+	return &txs, nil
 }
