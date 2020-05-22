@@ -451,7 +451,7 @@ func (rc *RichClient) GetTxDictByTxHash(hash types.Hash) (*richtypes.TxDict, err
 	return tc.ConvertByTransaction(tx, nil, nil)
 }
 
-// GetTxDictsByEpoch ...
+// GetTxDictsByEpoch returns all cfx transfers and token transfers of the epoch
 func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict, error) {
 
 	// start := time.Now()
