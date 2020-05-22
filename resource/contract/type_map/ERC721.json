@@ -1,0 +1,12 @@
+[{
+    "elem_name":"Transfer",
+    "elem_type":"TransferEvent"
+},
+{
+    "elem_name":"name",
+    "elem_type":"NameFunction"
+},
+{
+    "elem_name":"symbol",
+    "elem_type":"SymbolFunction"
+}]

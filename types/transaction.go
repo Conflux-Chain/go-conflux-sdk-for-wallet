@@ -23,7 +23,7 @@ type Transaction struct {
 	ContractCreated  types.Address `json:"contractCreated,omitempty"`
 	Data             string        `json:"data"`
 	Status           uint64        `json:"status,omitempty"`
-	Timestamp        uint64        `json:"timestamp"`
+	Timestamp        JSONTime      `json:"timestamp"`
 }
 
 // TransactionList represents a list of transaction
@@ -46,7 +46,7 @@ func (tx *Transaction) ToTokenTransferEvent() *TokenTransferEvent {
 	tte.TokenName = constants.CFXName
 	tte.TokenSymbol = constants.CFXSymbol
 	tte.TokenDecimal = constants.CFXDecimal
-	tte.TypeCode = 1
+	tte.TokenType = UNKNOWN
 
 	return &tte
 }

@@ -20,7 +20,7 @@ type TxDictBase struct {
 type TxDict struct {
 	TxDictBase
 	TxHash types.Hash `json:"tx_hash"`
-	TxAt   uint64     `json:"'tx_at'"`
+	TxAt   JSONTime   `json:"tx_at"`
 	// Extra      interface{} `json:"extra"`
 	RevertRate *big.Float  `json:"confirmed_at,omitempty"`
 	BlockHash  *types.Hash `json:"block_no,omitempty"`

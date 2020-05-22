@@ -12,11 +12,11 @@ import (
 
 // Token describes token detail messages, such as erc20, erc777, fanscoin and so on.
 type Token struct {
-	TokenName    string         `json:"tokenName"`
-	TokenSymbol  string         `json:"tokenSymbol"`
-	TokenDecimal uint64         `json:"tokenDecimal"`
+	TokenName    string         `json:"token_name"`
+	TokenSymbol  string         `json:"token_symbol"`
+	TokenDecimal uint64         `json:"token_decimal"`
 	Address      *types.Address `json:"address"`
-	TypeCode     uint           `json:"typeCode"`
+	TokenType    ContractType   `json:"token_type,omitempty"`
 }
 
 // TokenWithBalance describes token with balace information
@@ -39,7 +39,7 @@ type TokenTransferEvent struct {
 	From            types.Address `json:"from"`
 	To              types.Address `json:"to"`
 	Value           string        `json:"value"`
-	Timestamp       uint64        `json:"timestamp"`
+	Timestamp       JSONTime      `json:"timestamp"`
 	BlockHash       types.Hash
 	RevertRate      *big.Float
 }
