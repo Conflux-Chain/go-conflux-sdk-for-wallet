@@ -85,7 +85,8 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 
 	txDict, err := tc.createTxDict(tx.Hash, tx.BlockHash, revertRate, blockTime) //, &tx.From, tx.To, tx.Value)
 
-	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value)
+	sn := uint64(0)
+	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value, &sn)
 
 	if err != nil {
 		msg := fmt.Sprintf("creat tx_dict with txHash:%v, blockHash:%v, from:%v, to:%v, value:%v error",
@@ -101,7 +102,7 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	}
 	// fmt.Println("get tx receipt done")
 
-	err = tc.fillTxDictByTxReceipt(txDict, receipit)
+	err = tc.fillTxDictByTxReceipt(txDict, receipit, &sn)
 	// fmt.Printf("after fill by receipt: %+v\n\n", txDict)
 	if err != nil {
 		msg := fmt.Sprintf("fill tx_dict by tx receipt %v error", receipit)
@@ -152,14 +153,14 @@ func (tc *TxDictConverter) createTxDict(txhash types.Hash, blockhash *types.Hash
 	return txDict, nil
 }
 
-func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.Address, to *types.Address, value *hexutil.Big) {
+func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.Address, to *types.Address, value *hexutil.Big, sn *uint64) {
 
 	_value := big.Int(*value)
 
 	input := richtypes.TxUnit{
 		Value:        &_value,
 		Address:      from,
-		Sn:           0,
+		Sn:           *sn,
 		TokenCode:    constants.CFXSymbol,
 		TokenDecimal: constants.CFXDecimal,
 	}
@@ -167,17 +168,18 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.
 	output := richtypes.TxUnit{
 		Value:        &_value,
 		Address:      to,
-		Sn:           0,
+		Sn:           *sn,
 		TokenCode:    constants.CFXSymbol,
 		TokenDecimal: constants.CFXDecimal,
 	}
+	(*sn)++
 
 	txDict.Inputs = append(txDict.Inputs, input)
 	txDict.Outputs = append(txDict.Outputs, output)
 }
 
 // fillTxDictByTxReceipt fills token transfers to txDict by analizing receipt
-func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, receipt *types.TransactionReceipt) error {
+func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, receipt *types.TransactionReceipt, sn *uint64) error {
 	// fmt.Println("start fillTxDictByTxReceipt")
 	defer func() {
 		// fmt.Println("fillTxDictByTxReceipt done")
@@ -188,7 +190,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 		return nil
 	}
 
-	sn := uint64(0)
+	// sn := uint64(0)
 	for _, log := range logs {
 
 		// fmt.Println("start decode log")
@@ -222,7 +224,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			input := richtypes.TxUnit{
 				Value:           value,
 				Address:         from,
-				Sn:              sn,
+				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: tokenInfo.Address,
 				TokenDecimal:    tokenInfo.TokenDecimal,
@@ -230,14 +232,14 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			output := richtypes.TxUnit{
 				Value:           value,
 				Address:         to,
-				Sn:              sn,
+				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: tokenInfo.Address,
 				TokenDecimal:    tokenInfo.TokenDecimal,
 			}
 			txDict.Inputs = append(txDict.Inputs, input)
 			txDict.Outputs = append(txDict.Outputs, output)
-			sn++
+			(*sn)++
 		}
 	}
 	return nil
