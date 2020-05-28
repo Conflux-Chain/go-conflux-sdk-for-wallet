@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
@@ -54,12 +55,18 @@ type ServerConfig struct {
 	ContractQueryPath      string
 }
 
+type blockAndRevertrate struct {
+	block      *types.Block
+	revertRate *big.Float
+}
+
 // default value of server config
 var (
-	accountBalancesPath    = "/api/account/token/list"
-	accountTokenTxListPath = "/future/transfer/list"
-	txListPath             = "/future/transaction/list"
-	contractQueryPath      = "/api/contract/query"
+	accountTokensPath     = "/api/account/token/list"
+	tokenTransferListPath = "/future/transfer/list"
+	txListPath            = "/future/transaction/list"
+	contractQueryPath     = "/api/contract/query"
+	tokenQuery            = "/future/token/query"
 
 	cfxScanBackend = &scanServer{
 		Scheme:        "http",
@@ -97,14 +104,17 @@ func NewRichClient(client sdk.ClientOperator, configOption *ServerConfig) *RichC
 		}
 
 		if configOption.AccountBalancesPath != "" {
-			accountBalancesPath = configOption.AccountBalancesPath
+			accountTokensPath = configOption.AccountBalancesPath
 		}
+
 		if configOption.AccountTokenTxListPath != "" {
-			accountTokenTxListPath = configOption.AccountTokenTxListPath
+			tokenTransferListPath = configOption.AccountTokenTxListPath
 		}
+
 		if configOption.TxListPath != "" {
 			txListPath = configOption.TxListPath
 		}
+
 		if configOption.ContractQueryPath != "" {
 			contractQueryPath = configOption.ContractQueryPath
 		}
@@ -144,7 +154,7 @@ func (s *scanServer) URL(path string, params map[string]interface{}) string {
 // Get sends a "Get" request and fill the unmarshaled value of field "Result" in response to unmarshaledResult
 func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaledResult interface{}) error {
 	client := s.HTTPRequester
-	fmt.Println("request url:", s.URL(path, params))
+	//fmt.Println("request url:", s.URL(path, params))
 	rspBytes, err := client.Get(s.URL(path, params))
 	if err != nil {
 		return err
@@ -153,7 +163,7 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 	defer func() {
 		err := rspBytes.Body.Close()
 		if err != nil {
-			fmt.Println("close rsp error", err)
+			//fmt.Println("close rsp error", err)
 		}
 	}()
 
@@ -161,14 +171,14 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 	if err != nil {
 		return err
 	}
-	// fmt.Printf("body:%+v\n\n", string(body))
+	// //fmt.Printf("body:%+v\n\n", string(body))
 
 	var rsp richtypes.Response
 	err = json.Unmarshal(body, &rsp)
 	if err != nil {
 		return err
 	}
-	// fmt.Printf("unmarshaled body: %+v\n\n", rsp)
+	// //fmt.Printf("unmarshaled body: %+v\n\n", rsp)
 
 	if rsp.Code != 0 {
 		msg := fmt.Sprintf("code:%+v, message:%+v", rsp.Code, rsp.Message)
@@ -179,13 +189,13 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 	if err != nil {
 		return err
 	}
-	// fmt.Printf("marshaled result: %+v\n\n", string(rstBytes))
+	// //fmt.Printf("marshaled result: %+v\n\n", string(rstBytes))
 
 	err = json.Unmarshal(rstBytes, unmarshaledResult)
 	if err != nil {
 		return err
 	}
-	// fmt.Printf("unmarshaled result: %+v\n\n", unmarshaledResult)
+	// //fmt.Printf("unmarshaled result: %+v\n\n", unmarshaledResult)
 	return nil
 }
 
@@ -205,9 +215,9 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	if tokenIdentifier != nil {
 		var tts richtypes.TokenTransferEventList
 		params["contractAddress"] = *tokenIdentifier
-		err := rc.cfxScanBackend.Get(accountTokenTxListPath, params, &tts)
+		err := rc.cfxScanBackend.Get(tokenTransferListPath, params, &tts)
 		if err != nil {
-			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", accountTokenTxListPath, params)
+			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", tokenTransferListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
 		tteList = &tts
@@ -220,11 +230,11 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", txListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
-		fmt.Printf("txs length: %v\n\n", len(txs.List))
+		//fmt.Printf("txs length: %v\n\n", len(txs.List))
 		tteList = txs.ToTokenTransferEventList()
 	}
 
-	// fmt.Printf("ttelist length: %v\n\n", len(tteList.List))
+	// //fmt.Printf("ttelist length: %v\n\n", len(tteList.List))
 
 	// get epoch number and revert rate of every transaction
 	all := len(tteList.List)
@@ -237,7 +247,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			con = all % con
 		}
 
-		// fmt.Printf("con: %v\n", con)
+		// //fmt.Printf("con: %v\n", con)
 		var wg sync.WaitGroup
 		wg.Add(con)
 
@@ -254,7 +264,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 					return
 				}
 
-				if tx.BlockHash != nil {
+				if tx != nil && tx.BlockHash != nil {
 					//for getting revert rate
 					rate, err := rc.client.GetBlockRevertRateByHash(*tx.BlockHash)
 					if err != nil {
@@ -264,7 +274,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 					}
 					_tte.BlockHash = *tx.BlockHash
 					_tte.RevertRate = rate
-					// fmt.Printf("after set blockhash %v and rate %v\n", _tte.BlockHash, _tte.RevertRate)
+					// //fmt.Printf("after set blockhash %v and rate %v\n", _tte.BlockHash, _tte.RevertRate)
 				}
 
 			}(&tteList.List[excuted])
@@ -309,7 +319,7 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return nil, types.WrapError(err, msg)
 	}
 
-	contract, err := rc.client.GetContract(cInfo.ABI, &to)
+	contract, err := rc.client.GetContract([]byte(cInfo.ABI), &to)
 	if err != nil {
 		msg := fmt.Sprintf("get contract by ABI {%+v}, to {%+v} error", cInfo.ABI, to)
 		return nil, types.WrapError(err, msg)
@@ -367,8 +377,8 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 	return nil, err
 }
 
-// GetTokenByIdentifier returns token detail infomation of token identifier
-func (rc *RichClient) GetTokenByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error) {
+// GetContractByIdentifier returns token detail infomation of token identifier
+func (rc *RichClient) GetContractByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error) {
 	params := make(map[string]interface{})
 	params["address"] = tokenIdentifier
 	var contract richtypes.Contract
@@ -380,15 +390,28 @@ func (rc *RichClient) GetTokenByIdentifier(tokenIdentifier types.Address) (*rich
 	return &contract, nil
 }
 
+// // GetTokenByIdentifier returns token detail infomation of token identifier
+// func (rc *RichClient) GetTokenByIdentifier(tokenIdentifier types.Address) (*richtypes.Token, error) {
+// 	params := make(map[string]interface{})
+// 	params["address"] = tokenIdentifier
+// 	var contract richtypes.Token
+// 	err := rc.cfxScanBackend.Get(tokenQuery, params, &contract)
+// 	if err != nil {
+// 		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", contractQueryPath, params)
+// 		return nil, types.WrapError(err, msg)
+// 	}
+// 	return &contract, nil
+// }
+
 // GetAccountTokens returns coin balance and all token balances of specified address
 func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenWithBlanceList, error) {
 	params := make(map[string]interface{})
 	params["address"] = account
 
 	var tbs richtypes.TokenWithBlanceList
-	err := rc.contractManager.Get(accountBalancesPath, params, &tbs)
+	err := rc.contractManager.Get(accountTokensPath, params, &tbs)
 	if err != nil {
-		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", accountBalancesPath, params)
+		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", accountTokensPath, params)
 		return nil, types.WrapError(err, msg)
 	}
 	return &tbs, nil
@@ -396,7 +419,7 @@ func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenW
 
 // GetTransactionsFromPool returns all pending transactions in mempool of conflux node.
 //
-// it is only work on local conflux node currently.
+// it only works on local conflux node currently.
 func (rc *RichClient) GetTransactionsFromPool() (*[]types.Transaction, error) {
 	var txs []types.Transaction
 
@@ -410,4 +433,175 @@ func (rc *RichClient) GetTransactionsFromPool() (*[]types.Transaction, error) {
 	}
 
 	return &txs, nil
+}
+
+// GetTxDictByTxHash returns all cfx transfers and token transfers of transaction
+func (rc *RichClient) GetTxDictByTxHash(hash types.Hash) (*richtypes.TxDict, error) {
+	tx, err := rc.client.GetTransactionByHash(hash)
+	if err != nil {
+		msg := fmt.Sprintf("get transaction by hash %v error", hash)
+		return nil, types.WrapError(err, msg)
+	}
+
+	tc, err := NewTxDictConverter(rc)
+	if err != nil {
+		return nil, fmt.Errorf("create TxDictConverter error")
+	}
+
+	return tc.ConvertByTransaction(tx, nil, nil)
+}
+
+// GetTxDictsByEpoch returns all cfx transfers and token transfers of the epoch
+func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict, error) {
+
+	// start := time.Now()
+
+	client := rc.GetClient()
+
+	blockHashs, err := client.GetBlocksByEpoch(epoch)
+	if err != nil {
+		msg := fmt.Sprintf("get blocks by epoch %v error", epoch)
+		return nil, types.WrapError(err, msg)
+	}
+	//fmt.Printf("get block hashs by epoch done, passed time: %v\n", time.Now().Sub(start))
+
+	cache, errs := createBlockAndRevertrateCache(client, blockHashs)
+	if errs != nil {
+		return nil, joinError(errs)
+	}
+	//fmt.Println("create block and reverrate cache done, passed time: %", time.Now().Sub(start))
+
+	txdict, errs := rc.createTxDictsByBlockhashs(blockHashs, cache)
+	if errs != nil {
+		return nil, joinError(errs)
+	}
+	//fmt.Println("create tx dic done, passed time: %", time.Now().Sub(start))
+	return txdict, nil
+}
+
+func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types.Hash) (map[types.Hash]*blockAndRevertrate, []error) {
+	// cache block and it's revertrate
+	cache := make(map[types.Hash]*blockAndRevertrate)
+	var errors []error
+
+	// concurrence get block and revertrate
+	var wg sync.WaitGroup
+	wg.Add(len(blockHashs) * 2)
+
+	for _, blockhash := range blockHashs {
+		cache[blockhash] = &blockAndRevertrate{}
+
+		go func(bh types.Hash) {
+			defer func() {
+				wg.Done()
+			}()
+
+			block, err := client.GetBlockByHash(bh)
+			if err != nil {
+				msg := fmt.Sprintf("get block by hash %v error", bh)
+				if errors == nil {
+					errors = make([]error, 0)
+				}
+				errors = append(errors, types.WrapError(err, msg))
+			}
+			cache[bh].block = block
+		}(blockhash)
+
+		// get risk rate and block time
+		go func(bh types.Hash) {
+			defer func() {
+				wg.Done()
+			}()
+
+			revertRate, err := client.GetBlockRevertRateByHash(bh)
+			if err != nil {
+				msg := fmt.Sprintf("get block revert rate by hash %v error", bh)
+				if errors == nil {
+					errors = make([]error, 0)
+				}
+				errors = append(errors, types.WrapError(err, msg))
+			}
+			cache[bh].revertRate = revertRate
+		}(blockhash)
+	}
+	wg.Wait()
+	return cache, errors
+}
+
+func (rc *RichClient) createTxDictsByBlockhashs(blockHashs []types.Hash, cache map[types.Hash]*blockAndRevertrate) ([]richtypes.TxDict, []error) {
+
+	var errors = make([]error, 0)
+
+	tc, err := NewTxDictConverter(rc)
+	if err != nil {
+		errors = append(errors, err)
+		return nil, errors
+	}
+
+	txDicts := make([]richtypes.TxDict, 0)
+
+	txs := make([]types.Transaction, 0)
+	for _, blockhash := range blockHashs {
+		txs = append(txs, cache[blockhash].block.Transactions...)
+	}
+
+	all := len(txs)
+	con := constants.RPCConcurrence
+	excuted := 0
+	for {
+		isLastLoop := (all-excuted)/con == 0
+		if isLastLoop {
+			con = all % con
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(con)
+
+		for i := 0; i < con; i++ {
+
+			go func(_tx types.Transaction) {
+
+				defer func() {
+					wg.Done()
+					//fmt.Println("excute tx done:", excuted)
+				}()
+
+				// blockhash null means that tx is excuted by other block, so skip it
+				if _tx.BlockHash == nil {
+					return
+				}
+
+				cacheVal := cache[*_tx.BlockHash]
+
+				txDict, err := tc.ConvertByTransaction(&_tx, cacheVal.revertRate, cacheVal.block.Timestamp)
+				if err != nil {
+					errors = append(errors, err)
+					return
+				}
+				txDicts = append(txDicts, *txDict)
+			}(txs[excuted])
+			excuted++
+			//fmt.Println("excuting tx :", excuted)
+		}
+
+		wg.Wait()
+
+		if isLastLoop {
+			break
+		}
+	}
+
+	return txDicts, nil
+}
+
+func joinError(errs []error) error {
+	if errs != nil && len(errs) > 0 {
+		errorStrs := make([]string, len(errs))
+		for i, e := range errs {
+			errorStrs[i] = e.Error()
+		}
+		joinedErr := strings.Join(errorStrs, "\n")
+		return errors.New(joinedErr)
+	}
+	return nil
 }

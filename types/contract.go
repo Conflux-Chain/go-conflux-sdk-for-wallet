@@ -4,22 +4,53 @@
 
 package richtypes
 
+import (
+	"fmt"
+
+	sdk "github.com/Conflux-Chain/go-conflux-sdk"
+	"github.com/Conflux-Chain/go-conflux-sdk/types"
+)
+
 // ContractType represents contract type
-type ContractType uint
+type ContractType string
+
+// ContractElemType ...
+type ContractElemType string
+
+// ContractElemConcrete indicates contract element, such as events and methods
+type ContractElemConcrete struct {
+	ElemName     string           `json:"elem_name"`
+	Contract     *sdk.Contract    `json:"contract,omitempty"`
+	ContractType ContractType     `json:"contract_type"`
+	ElemType     ContractElemType `json:"elem_type"`
+}
+
+const (
+	UNKNOWN  ContractType = "UNKNOWN"
+	GENERAL  ContractType = "GENERAL"
+	ERC20    ContractType = "ERC20"
+	ERC777   ContractType = "ERC777"
+	FANSCOIN ContractType = "FANSCOIN"
+	ERC721   ContractType = "ERC721"
+	DEX      ContractType = "DEX"
+)
+
+const (
+	TransferEvent    ContractElemType = "TransferEvent"
+	NameFunction     ContractElemType = "NameFunction"
+	SymbolFunction   ContractElemType = "SymbolFunction"
+	DecimalsFunction ContractElemType = "DecimalsFunction"
+)
 
 // Contract describe response contract information of scan rest api request
 type Contract struct {
-	// "address": "exercitation qui anim",
-	TypeCode     uint   `json:"typeCode"` // "typeCode": -87108642.2575568,
-	ContractName string `json:"name"`     //"name": "fugiat Lorem esse",
-	// "webside": "sunt",
-	ABI string `json:"abi"`
-	// "sourceCode": "Ut cillum exercitation tempor",
-	// "icon": "dolor eiusmod in",
-	TokenSymbol   string `json:"tokenSymbol"`   // "tokenSymbol": "magna deserunt cillum ullamco",
-	TokenDecimals uint64 `json:"tokenDecimals"` // "tokenDecimals": 54105223.43683612,
-	TokenIcon     string `json:"tokenIcon"`     // "tokenIcon": "mollit nulla enim",
-	TokenName     string `json:"tokenName"`     // "tokenName": "non dolore"
+	TypeCode      uint   `json:"typeCode"`
+	ContractName  string `json:"name"`
+	ABI           string `json:"abi"`
+	TokenSymbol   string `json:"tokenSymbol"`
+	TokenDecimals uint64 `json:"tokenDecimals"`
+	TokenIcon     string `json:"tokenIcon"`
+	TokenName     string `json:"tokenName"`
 }
 
 // GetContractType return contract type
@@ -45,32 +76,43 @@ func (c *Contract) GetContractType() ContractType {
 	return UNKNOWN
 }
 
-const (
-	// UNKNOWN contract
-	UNKNOWN ContractType = iota
-	// GENERAL contract
-	GENERAL
-	// ERC20 contract
-	ERC20
-	// ERC777 contract
-	ERC777
-	// FANSCOIN contract
-	FANSCOIN
-	// ERC721 contract
-	ERC721
-	// DEX contract
-	DEX
-)
+// // String implements the fmt.Stringer interface
+// func (c ContractType) String() string {
+// 	dic := make(map[ContractType]string)
+// 	dic[UNKNOWN] = "unknown"
+// 	dic[GENERAL] = "general"
+// 	dic[ERC20] = "erc20"
+// 	dic[ERC777] = "erc777"
+// 	dic[FANSCOIN] = "fanscoin"
+// 	dic[ERC721] = "erc721"
+// 	dic[DEX] = "dex"
+// 	return dic[c]
+// }
 
-// String implements the fmt.Stringer interface
-func (c ContractType) String() string {
-	dic := make(map[ContractType]string)
-	dic[UNKNOWN] = "unknown"
-	dic[GENERAL] = "general"
-	dic[ERC20] = "erc20"
-	dic[ERC777] = "erc777"
-	dic[FANSCOIN] = "fanscoin"
-	dic[ERC721] = "erc721"
-	dic[DEX] = "dex"
-	return dic[c]
+// Decode decodes log into instance of event params struct
+func (contrete *ContractElemConcrete) Decode(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
+	switch contrete.ElemType {
+	case TransferEvent:
+		switch contrete.ContractType {
+		case ERC20:
+			fallthrough
+		case FANSCOIN:
+			params := ERC20TokenTransferEventParams{}
+			err = contrete.Contract.DecodeEvent(&params, contrete.ElemName, *log)
+			eventParmsPtr = &params
+			return
+		case ERC721:
+			params := ERC721TokenTransferEventParams{}
+			err = contrete.Contract.DecodeEvent(&params, contrete.ElemName, *log)
+			eventParmsPtr = &params
+			return
+		case ERC777:
+			params := ERC777TokenTransferEventParams{}
+			err = contrete.Contract.DecodeEvent(&params, contrete.ElemName, *log)
+			eventParmsPtr = &params
+			return
+		}
+	}
+
+	return nil, fmt.Errorf("not found tuple type for contract type: %v, event type: %v", contrete.ContractType, contrete.ElemType)
 }

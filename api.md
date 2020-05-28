@@ -93,12 +93,12 @@ func (rc *RichClient) GetClient() sdk.ClientOperator
 ```
 GetClient returns client
 
-#### func (*RichClient) GetTokenByIdentifier
+#### func (*RichClient) GetContractByIdentifier
 
 ```go
-func (rc *RichClient) GetTokenByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error)
+func (rc *RichClient) GetContractByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error)
 ```
-GetTokenByIdentifier returns token detail infomation of token identifier
+GetContractByIdentifier returns token detail infomation of token identifier
 
 #### func (*RichClient) GetTransactionsFromPool
 
@@ -108,7 +108,21 @@ func (rc *RichClient) GetTransactionsFromPool() (*[]types.Transaction, error)
 GetTransactionsFromPool returns all pending transactions in mempool of conflux
 node.
 
-it is only work on local conflux node currently.
+it only works on local conflux node currently.
+
+#### func (*RichClient) GetTxDictByTxHash
+
+```go
+func (rc *RichClient) GetTxDictByTxHash(hash types.Hash) (*richtypes.TxDict, error)
+```
+GetTxDictByTxHash returns all cfx transfers and token transfers of transaction
+
+#### func (*RichClient) GetTxDictsByEpoch
+
+```go
+func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict, error)
+```
+GetTxDictsByEpoch returns all cfx transfers and token transfers of the epoch
 
 ### type ServerConfig
 
@@ -136,14 +150,14 @@ type TxDictBaseConverter struct {
 }
 ```
 
-TxDictBaseConverter contains methods for convert other types to TxDictBase
+TxDictBaseConverter contains methods for convert other types to TxDictBase.
 
 #### func (*TxDictBaseConverter) ConvertByUnsignedTransaction
 
 ```go
 func (tc *TxDictBaseConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransaction) *richtypes.TxDictBase
 ```
-ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase
+ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase.
 
 ### type TxDictConverter
 
@@ -152,32 +166,25 @@ type TxDictConverter struct {
 }
 ```
 
-TxDictConverter contains methods for convert other types to TxDict
+TxDictConverter contains methods for convert other types to TxDict.
 
 #### func  NewTxDictConverter
 
 ```go
-func NewTxDictConverter(rc RichClientOperator) *TxDictConverter
+func NewTxDictConverter(richClient walletinterface.RichClientOperator) (*TxDictConverter, error)
 ```
-NewTxDictConverter creates a TxDictConverter instance
-
-#### func (*TxDictConverter) ConvertByRichTransaction
-
-```go
-func (tc *TxDictConverter) ConvertByRichTransaction(tx *richtypes.Transaction) (*richtypes.TxDict, error)
-```
-ConvertByRichTransaction convert richtypes.Transaction to TxDict
+NewTxDictConverter creates a TxDictConverter instance.
 
 #### func (*TxDictConverter) ConvertByTokenTransferEvent
 
 ```go
 func (tc *TxDictConverter) ConvertByTokenTransferEvent(tte *richtypes.TokenTransferEvent) (*richtypes.TxDict, error)
 ```
-ConvertByTokenTransferEvent converts richtypes.TokenTransferEvent to TxDict
+ConvertByTokenTransferEvent converts richtypes.TokenTransferEvent to TxDict.
 
 #### func (*TxDictConverter) ConvertByTransaction
 
 ```go
-func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction) (*richtypes.TxDict, error)
+func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRate *big.Float, blockTime *hexutil.Uint64) (*richtypes.TxDict, error)
 ```
-ConvertByTransaction converts types.Transaction to TxDict
+ConvertByTransaction converts types.Transaction to TxDict.

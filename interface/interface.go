@@ -1,4 +1,4 @@
-package walletsdk
+package walletinterface
 
 import (
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
@@ -12,7 +12,17 @@ type RichClientOperator interface {
 	GetClient() sdk.ClientOperator
 	GetAccountTokenTransfers(address types.Address, tokenIdentifier *types.Address, pageNumber, pageSize uint) (*richtypes.TokenTransferEventList, error)
 	CreateSendTokenTransaction(from types.Address, to types.Address, amount *hexutil.Big, tokenIdentifier *types.Address) (*types.UnsignedTransaction, error)
-	GetTokenByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error)
+	// GetTokenByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error)
 	GetAccountTokens(account types.Address) (*richtypes.TokenWithBlanceList, error)
 	GetTransactionsFromPool() (*[]types.Transaction, error)
+}
+
+// TokenReader ...
+type TokenReader interface {
+	GetTokenByIdentifier(contractAddress types.Address) (*richtypes.Token, error)
+}
+
+// EventDecoder represents interface for decoding event
+type EventDecoder interface {
+	Decode(log *types.LogEntry) (interface{}, error)
 }
