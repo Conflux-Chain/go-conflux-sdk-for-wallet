@@ -54,13 +54,12 @@ func init() {
 }
 
 func main() {
-	// testGetAccountTokenTransfers()
-
-	// testGetAccountTokens()
-	// testCreateSendTokenTransaction()
-	// // // testGetTransactionsFromPool()
-	// testGetTransactionsByEpoch()
+	testGetAccountTokenTransfers()
+	testGetAccountTokens()
+	testCreateSendTokenTransaction()
+	testGetTransactionsByEpoch()
 	testGetTxDictByTxHash()
+	testGetTransactionsFromPool()
 }
 
 func testGetAccountTokenTransfers() {
