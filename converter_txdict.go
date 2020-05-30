@@ -82,6 +82,9 @@ func (tc *TxDictConverter) ConvertByTokenTransferEvent(tte *richtypes.TokenTrans
 // ConvertByTransaction converts types.Transaction to TxDict.
 func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRate *big.Float, blockTime *hexutil.Uint64) (*richtypes.TxDict, error) {
 	// fmt.Printf("start convert by tx, the blocktime is %#v\n", *blockTime)
+	if tx == nil {
+		return nil, errors.New("tx is nil")
+	}
 
 	txDict, err := tc.createTxDict(tx.Hash, tx.BlockHash, revertRate, blockTime) //, &tx.From, tx.To, tx.Value)
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -24,10 +25,10 @@ func init() {
 	}
 
 	//init client without retry and excute it
-	url := "http://123.57.45.90:12537"
-
 	//it doesn't work now, you could try later
 	// url := "http://testnet-jsonrpc.conflux-chain.org:12537"
+	url := "http://123.57.45.90:12537"
+
 	client, err := sdk.NewClient(url)
 	if err != nil {
 		panic(err)
@@ -53,28 +54,33 @@ func init() {
 }
 
 func main() {
-	testGetAccountTokenTransfers()
-	testGetAccountTokens()
-	testCreateSendTokenTransaction()
-	// testGetTransactionsFromPool()
-	testGetTransactionsByEpoch()
+	// testGetAccountTokenTransfers()
+
+	// testGetAccountTokens()
+	// testCreateSendTokenTransaction()
+	// // // testGetTransactionsFromPool()
+	// testGetTransactionsByEpoch()
 	testGetTxDictByTxHash()
 }
 
 func testGetAccountTokenTransfers() {
+	start := time.Now()
 	from := types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302")
 	token := contractErc20Address
 	tte, err := rc.GetAccountTokenTransfers(from, &token, 1, 50)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("get account %v token %v transers done:\n%+v\n\n", from, token, tte)
+	fmt.Printf("get account %v token %v transers done, token transfer list is:\n%+v\nused time:%v\n\n",
+		from, token, jsonFmt(tte), time.Now().Sub(start))
 
+	start = time.Now()
 	tte, err = rc.GetAccountTokenTransfers(from, nil, 1, 50)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("get account %v main coin transers done:\n%+v\n\n", from, tte)
+	fmt.Printf("get account %v main coin transers done, token transfer list is:\n%+v\nused time:%v\n\n",
+		from, jsonFmt(tte), time.Now().Sub(start))
 }
 
 func testCreateSendTokenTransaction() {
@@ -82,13 +88,13 @@ func testCreateSendTokenTransaction() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("create send erc20 token tx:%+v\n\n", tx)
+	fmt.Printf("create send erc20 token tx:%+v\n\n", jsonFmt(tx))
 
 	tx, err = rc.CreateSendTokenTransaction(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), types.Address("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &contractErc777Address)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("create send erc777 token tx:%+v\n\n", tx)
+	fmt.Printf("create send erc777 token tx:%+v\n\n", jsonFmt(tx))
 }
 
 func testGetAccountTokens() {
@@ -96,7 +102,7 @@ func testGetAccountTokens() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("address has tokens:\n%+v\n\n", ts)
+	fmt.Printf("address has tokens:\n%+v\n\n", jsonFmt(ts))
 
 }
 
@@ -105,21 +111,21 @@ func testGetTransactionsFromPool() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("txs in pool count is %+v\n\n", len(*txs))
+	fmt.Printf("txs in pool is:\n%+v\n\n", jsonFmt(txs))
 }
 
 func testGetTransactionsByEpoch() {
 	start := time.Now()
 	// epochNum := big.NewInt(1267420) //888 txs
 	// epochNum := big.NewInt(2356824) //45 txs
-	// epochNum := big.NewInt(2375610) //1 txs
 	epochNum := big.NewInt(2478524) //4 txs
+	// epochNum := big.NewInt(2375610) //1 txs
 
 	txdicts, err := rc.GetTxDictsByEpoch(types.NewEpochNumber(epochNum))
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("get txdicts of epoch %v is %+v, used time: %v\n\n", epochNum, txdicts, time.Now().Sub(start))
+	fmt.Printf("get txdicts of epoch %v done, txidcts is\n%+v, used time: %v\n\n", epochNum, jsonFmt(txdicts), time.Now().Sub(start))
 }
 
 func testGetTxDictByTxHash() {
@@ -128,5 +134,13 @@ func testGetTxDictByTxHash() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("get txdict by txhash result: %+v\n\n", txdict)
+	fmt.Printf("get txdict by txhash done\n%+v\n\n", jsonFmt(txdict))
+}
+
+func jsonFmt(input interface{}) string {
+	j, err := json.Marshal(input)
+	if err != nil {
+		panic(err)
+	}
+	return string(j)
 }

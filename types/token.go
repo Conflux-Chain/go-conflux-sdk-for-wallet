@@ -12,28 +12,30 @@ import (
 
 // Token describes token detail messages, such as erc20, erc777, fanscoin and so on.
 type Token struct {
-	TokenName    string         `json:"token_name"`
-	TokenSymbol  string         `json:"token_symbol"`
-	TokenDecimal uint64         `json:"token_decimal"`
-	Address      *types.Address `json:"address"`
+	TokenName    string         `json:"name"`
+	TokenSymbol  string         `json:"symbol"`
+	TokenDecimal uint64         `json:"decimals"`
+	Address      *types.Address `json:"address,omitempty"`
 	TokenType    ContractType   `json:"token_type,omitempty"`
 }
 
 // TokenWithBalance describes token with balace information
 type TokenWithBalance struct {
-	Token
-	Balance string `json:"balance"`
+	TokenName    string `json:"tokenName"`
+	TokenSymbol  string `json:"tokenSymbol"`
+	TokenDecimal int    `json:"tokenDecimal"`
+	Balance      string `json:"balance"`
+	Address      string `json:"address"`
 }
 
 // TokenWithBlanceList describes list of token with balance
 type TokenWithBlanceList struct {
-	Total uint64             `json:"total"`
-	List  []TokenWithBalance `json:"list"`
+	List []TokenWithBalance `json:"list"`
 }
 
 // TokenTransferEvent describes token transfer event information
 type TokenTransferEvent struct {
-	Token
+	Token           `json:"token"`
 	TransactionHash types.Hash    `json:"transactionHash"`
 	Status          uint64        `json:"status"`
 	From            types.Address `json:"from"`

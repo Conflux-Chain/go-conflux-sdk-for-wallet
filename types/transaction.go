@@ -42,6 +42,7 @@ func (tx *Transaction) ToTokenTransferEvent() *TokenTransferEvent {
 	tte.To = tx.To
 	tte.Value = tx.Value
 	tte.Timestamp = tx.Timestamp
+	tte.BlockHash = tx.BlockHash
 
 	tte.TokenName = constants.CFXName
 	tte.TokenSymbol = constants.CFXSymbol
