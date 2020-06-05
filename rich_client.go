@@ -230,7 +230,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		}
 
 		// set block hash
-		txhashToTxMap, err := rc.client.BatchGetTxByHashs(txhashs)
+		txhashToTxMap, err := rc.client.BatchGetTxByHashes(txhashs)
 		if err != nil {
 			msg := fmt.Sprintf("batch get txs by tx hashs %v error", txhashs)
 			return nil, types.WrapError(err, msg)
@@ -269,7 +269,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	}
 
 	// use batch call instead of concurrency
-	blkhashToRateMap, err := rc.client.BatchGetBlockRevertRates(blockhashs)
+	blkhashToRateMap, err := rc.client.BatchGetBlockConfirmationRisk(blockhashs)
 	// fmt.Printf("blkhashToRateMap: %+v\n\n", blkhashToRateMap)
 	if err != nil {
 		msg := fmt.Sprintf("batch get block revert of blockhashs %v error", blockhashs)
@@ -499,7 +499,7 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types
 		go func(bh types.Hash) {
 			defer wg.Done()
 
-			revertRate, err := client.GetBlockRevertRateByHash(bh)
+			revertRate, err := client.GetBlockConfirmRisk(bh)
 			if err != nil {
 				msg := fmt.Sprintf("get block revert rate by hash %v error", bh)
 				if errors == nil {

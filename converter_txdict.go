@@ -132,7 +132,7 @@ func (tc *TxDictConverter) createTxDict(txhash types.Hash, blockhash *types.Hash
 	if revertRate == nil && blockhash != nil {
 		// fmt.Println("start get block revert rate by hash")
 		var err error
-		revertRate, err = client.GetBlockRevertRateByHash(*blockhash)
+		revertRate, err = client.GetBlockConfirmRisk(*blockhash)
 		if err != nil {
 			msg := fmt.Sprintf("get block revert rate by hash %v error", blockhash)
 			return nil, types.WrapError(err, msg)
