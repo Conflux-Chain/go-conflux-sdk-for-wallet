@@ -210,7 +210,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	params["txType"] = "all"
 
 	var tteList *richtypes.TokenTransferEventList
-	blockhashs := []types.Hash{}
+	blockhashes := []types.Hash{}
 	// when tokenIdentifier is not nil return transfer events of the token
 	if tokenIdentifier != nil {
 		var tts richtypes.TokenTransferEventList
@@ -223,16 +223,16 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		tteList = &tts
 
 		// batch get blockhash through getTransactionByHash
-		blockhashs = make([]types.Hash, 0, len(tteList.List))
-		txhashs := make([]types.Hash, len(tteList.List))
+		blockhashes = make([]types.Hash, 0, len(tteList.List))
+		txhashes := make([]types.Hash, len(tteList.List))
 		for i := range tteList.List {
-			txhashs[i] = tteList.List[i].TransactionHash
+			txhashes[i] = tteList.List[i].TransactionHash
 		}
 
 		// set block hash
-		txhashToTxMap, err := rc.client.BatchGetTxByHashes(txhashs)
+		txhashToTxMap, err := rc.client.BatchGetTxByHashes(txhashes)
 		if err != nil {
-			msg := fmt.Sprintf("batch get txs by tx hashs %v error", txhashs)
+			msg := fmt.Sprintf("batch get txs by tx hashes %v error", txhashes)
 			return nil, types.WrapError(err, msg)
 		}
 
@@ -244,9 +244,9 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			}
 		}
 
-		for _, th := range txhashs {
+		for _, th := range txhashes {
 			if txhashToTxMap[th] != nil && txhashToTxMap[th].BlockHash != nil {
-				blockhashs = append(blockhashs, *txhashToTxMap[th].BlockHash)
+				blockhashes = append(blockhashes, *txhashToTxMap[th].BlockHash)
 			}
 		}
 
@@ -261,18 +261,18 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 
 		tteList = txs.ToTokenTransferEventList()
 
-		// set blockhashs
-		blockhashs = make([]types.Hash, len(txs.List))
+		// set blockhashes
+		blockhashes = make([]types.Hash, len(txs.List))
 		for i := range txs.List {
-			blockhashs[i] = txs.List[i].BlockHash
+			blockhashes[i] = txs.List[i].BlockHash
 		}
 	}
 
 	// use batch call instead of concurrency
-	blkhashToRateMap, err := rc.client.BatchGetBlockConfirmationRisk(blockhashs)
+	blkhashToRateMap, err := rc.client.BatchGetBlockConfirmationRisk(blockhashes)
 	// fmt.Printf("blkhashToRateMap: %+v\n\n", blkhashToRateMap)
 	if err != nil {
-		msg := fmt.Sprintf("batch get block revert of blockhashs %v error", blockhashs)
+		msg := fmt.Sprintf("batch get block revert of blockhashes %v error", blockhashes)
 		return nil, types.WrapError(err, msg)
 	}
 	for i, tte := range tteList.List {
@@ -445,14 +445,14 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 
 	client := rc.GetClient()
 
-	blockHashs, err := client.GetBlocksByEpoch(epoch)
+	blockhashes, err := client.GetBlocksByEpoch(epoch)
 	if err != nil {
 		msg := fmt.Sprintf("get blocks by epoch %v error", epoch)
 		return nil, types.WrapError(err, msg)
 	}
-	//fmt.Printf("get block hashs by epoch done, passed time: %v\n", time.Now().Sub(start))
+	//fmt.Printf("get block hashes by epoch done, passed time: %v\n", time.Now().Sub(start))
 
-	cache, errs := createBlockAndRevertrateCache(client, blockHashs)
+	cache, errs := createBlockAndRevertrateCache(client, blockhashes)
 	if errs != nil {
 		return nil, joinError(errs)
 	}
@@ -460,7 +460,7 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 
 	//fmt.Println("create block and reverrate cache done, passed time: %", time.Now().Sub(start))
 
-	txdict, errs := rc.createTxDictsByBlockhashs(blockHashs, cache)
+	txdict, errs := rc.createTxDictsByBlockhashes(blockhashes, cache)
 	if errs != nil {
 		return nil, joinError(errs)
 	}
@@ -468,17 +468,17 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 	return txdict, nil
 }
 
-func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types.Hash) (map[types.Hash]*blockAndRevertrate, []error) {
+func createBlockAndRevertrateCache(client sdk.ClientOperator, blockhashes []types.Hash) (map[types.Hash]*blockAndRevertrate, []error) {
 	// cache block and it's revertrate
 	cache := make(map[types.Hash]*blockAndRevertrate)
 	var errors []error
 
-	// blockHashs = []types.Hash{"0x28d5a5b1b8f6c83e274b7ba1f027d16215596f27ea5effb745994401d23f8a18"}
+	// blockhashes = []types.Hash{"0x28d5a5b1b8f6c83e274b7ba1f027d16215596f27ea5effb745994401d23f8a18"}
 	// concurrence get block and revertrate
 	var wg sync.WaitGroup
-	wg.Add(len(blockHashs) * 2)
+	wg.Add(len(blockhashes) * 2)
 
-	for _, blockhash := range blockHashs {
+	for _, blockhash := range blockhashes {
 		cache[blockhash] = &blockAndRevertrate{}
 
 		go func(bh types.Hash) {
@@ -499,7 +499,7 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types
 		go func(bh types.Hash) {
 			defer wg.Done()
 
-			revertRate, err := client.GetBlockConfirmRisk(bh)
+			revertRate, err := client.GetBlockConfirmationRisk(bh)
 			if err != nil {
 				msg := fmt.Sprintf("get block revert rate by hash %v error", bh)
 				if errors == nil {
@@ -515,7 +515,7 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types
 	return cache, errors
 }
 
-func (rc *RichClient) createTxDictsByBlockhashs(blockHashs []types.Hash, cache map[types.Hash]*blockAndRevertrate) ([]richtypes.TxDict, []error) {
+func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache map[types.Hash]*blockAndRevertrate) ([]richtypes.TxDict, []error) {
 
 	var errors = make([]error, 0)
 
@@ -528,7 +528,7 @@ func (rc *RichClient) createTxDictsByBlockhashs(blockHashs []types.Hash, cache m
 	txDicts := make([]richtypes.TxDict, 0)
 
 	txs := make([]types.Transaction, 0)
-	for _, blockhash := range blockHashs {
+	for _, blockhash := range blockhashes {
 		fmt.Printf("cache[%v]= %+v\n", blockhash, cache[blockhash])
 		txs = append(txs, cache[blockhash].block.Transactions...)
 	}
