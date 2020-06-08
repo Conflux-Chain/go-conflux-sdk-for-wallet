@@ -1,15 +1,23 @@
 language: go
 go:
-    - 1.9.x
+    # - 1.9.x
+    - 1.11.x
     - 1.14.x
 os:
     - linux
     - osx
     - windows
+script: go test -gcflags=-l -v ./...
 notifications:
     email:
         recipients:
-        - wangdayong228@163.com
-        - resodo.liu@gmail.com
+            - wangdayong228@163.com
+            - resodo.liu@gmail.com
         on_success: change # default: change
         on_failure: always # default: always
+env:
+    - GO111MODULE=on
+branches:
+    only:
+        - master
+        - /.*/

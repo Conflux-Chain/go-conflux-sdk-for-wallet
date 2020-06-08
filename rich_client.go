@@ -16,7 +16,6 @@ import (
 	"sync"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
-
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 
@@ -211,6 +210,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	params["txType"] = "all"
 
 	var tteList *richtypes.TokenTransferEventList
+	blockhashes := []types.Hash{}
 	// when tokenIdentifier is not nil return transfer events of the token
 	if tokenIdentifier != nil {
 		var tts richtypes.TokenTransferEventList
@@ -222,6 +222,34 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		}
 		tteList = &tts
 
+		// batch get blockhash through getTransactionByHash
+		blockhashes = make([]types.Hash, 0, len(tteList.List))
+		txhashes := make([]types.Hash, len(tteList.List))
+		for i := range tteList.List {
+			txhashes[i] = tteList.List[i].TransactionHash
+		}
+
+		// set block hash
+		txhashToTxMap, err := rc.client.BatchGetTxByHashes(txhashes)
+		if err != nil {
+			msg := fmt.Sprintf("batch get txs by tx hashes %v error", txhashes)
+			return nil, types.WrapError(err, msg)
+		}
+
+		for i := range tteList.List {
+			hash := tteList.List[i].TransactionHash
+			tx := txhashToTxMap[hash]
+			if tx != nil && tx.BlockHash != nil {
+				tteList.List[i].BlockHash = *txhashToTxMap[hash].BlockHash
+			}
+		}
+
+		for _, th := range txhashes {
+			if txhashToTxMap[th] != nil && txhashToTxMap[th].BlockHash != nil {
+				blockhashes = append(blockhashes, *txhashToTxMap[th].BlockHash)
+			}
+		}
+
 	} else {
 		// when tokenIdentifier is nil return transaction of main coin
 		var txs richtypes.TransactionList
@@ -230,68 +258,27 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", txListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
-		//fmt.Printf("txs length: %v\n\n", len(txs.List))
+
 		tteList = txs.ToTokenTransferEventList()
-	}
 
-	// //fmt.Printf("ttelist length: %v\n\n", len(tteList.List))
-
-	// get epoch number and revert rate of every transaction
-	all := len(tteList.List)
-	con := constants.RPCConcurrence
-	excuted := 0
-	errorStrs := []string{}
-	for {
-		isLastLoop := (all-excuted)/con == 0
-		if isLastLoop {
-			con = all % con
-		}
-
-		// //fmt.Printf("con: %v\n", con)
-		var wg sync.WaitGroup
-		wg.Add(con)
-
-		for i := 0; i < con; i++ {
-
-			go func(_tte *richtypes.TokenTransferEvent) {
-				defer wg.Done()
-
-				//for getting block hash
-				tx, err := rc.client.GetTransactionByHash(_tte.TransactionHash)
-				if err != nil {
-					errMsg := fmt.Sprintf("get transaction by hash %+v error: %+v", _tte.TransactionHash, err.Error())
-					errorStrs = append(errorStrs, errMsg)
-					return
-				}
-
-				if tx != nil && tx.BlockHash != nil {
-					//for getting revert rate
-					rate, err := rc.client.GetBlockRevertRateByHash(*tx.BlockHash)
-					if err != nil {
-						errMsg := fmt.Sprintf("get block revert rate by hash %+v error: %+v", tx.BlockHash, err.Error())
-						errorStrs = append(errorStrs, errMsg)
-						return
-					}
-					_tte.BlockHash = *tx.BlockHash
-					_tte.RevertRate = rate
-					// //fmt.Printf("after set blockhash %v and rate %v\n", _tte.BlockHash, _tte.RevertRate)
-				}
-
-			}(&tteList.List[excuted])
-			excuted++
-		}
-		wg.Wait()
-
-		if isLastLoop {
-			break
+		// set blockhashes
+		blockhashes = make([]types.Hash, len(txs.List))
+		for i := range txs.List {
+			blockhashes[i] = txs.List[i].BlockHash
 		}
 	}
 
-	if len(errorStrs) > 0 {
-		joinedErr := strings.Join(errorStrs, "\n")
-		return nil, errors.New(joinedErr)
+	// use batch call instead of concurrency
+	blkhashToRateMap, err := rc.client.BatchGetBlockConfirmationRisk(blockhashes)
+	// fmt.Printf("blkhashToRateMap: %+v\n\n", blkhashToRateMap)
+	if err != nil {
+		msg := fmt.Sprintf("batch get block revert of blockhashes %v error", blockhashes)
+		return nil, types.WrapError(err, msg)
 	}
-
+	for i, tte := range tteList.List {
+		rate := blkhashToRateMap[tte.BlockHash]
+		tteList.List[i].RevertRate = rate
+	}
 	return tteList, nil
 }
 
@@ -458,20 +445,22 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 
 	client := rc.GetClient()
 
-	blockHashs, err := client.GetBlocksByEpoch(epoch)
+	blockhashes, err := client.GetBlocksByEpoch(epoch)
 	if err != nil {
 		msg := fmt.Sprintf("get blocks by epoch %v error", epoch)
 		return nil, types.WrapError(err, msg)
 	}
-	//fmt.Printf("get block hashs by epoch done, passed time: %v\n", time.Now().Sub(start))
+	//fmt.Printf("get block hashes by epoch done, passed time: %v\n", time.Now().Sub(start))
 
-	cache, errs := createBlockAndRevertrateCache(client, blockHashs)
+	cache, errs := createBlockAndRevertrateCache(client, blockhashes)
 	if errs != nil {
 		return nil, joinError(errs)
 	}
+	// fmt.Printf("cache: %+v\n", cache)
+
 	//fmt.Println("create block and reverrate cache done, passed time: %", time.Now().Sub(start))
 
-	txdict, errs := rc.createTxDictsByBlockhashs(blockHashs, cache)
+	txdict, errs := rc.createTxDictsByBlockhashes(blockhashes, cache)
 	if errs != nil {
 		return nil, joinError(errs)
 	}
@@ -479,22 +468,21 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 	return txdict, nil
 }
 
-func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types.Hash) (map[types.Hash]*blockAndRevertrate, []error) {
+func createBlockAndRevertrateCache(client sdk.ClientOperator, blockhashes []types.Hash) (map[types.Hash]*blockAndRevertrate, []error) {
 	// cache block and it's revertrate
 	cache := make(map[types.Hash]*blockAndRevertrate)
 	var errors []error
 
+	// blockhashes = []types.Hash{"0x28d5a5b1b8f6c83e274b7ba1f027d16215596f27ea5effb745994401d23f8a18"}
 	// concurrence get block and revertrate
 	var wg sync.WaitGroup
-	wg.Add(len(blockHashs) * 2)
+	wg.Add(len(blockhashes) * 2)
 
-	for _, blockhash := range blockHashs {
+	for _, blockhash := range blockhashes {
 		cache[blockhash] = &blockAndRevertrate{}
 
 		go func(bh types.Hash) {
-			defer func() {
-				wg.Done()
-			}()
+			defer wg.Done()
 
 			block, err := client.GetBlockByHash(bh)
 			if err != nil {
@@ -509,11 +497,9 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types
 
 		// get risk rate and block time
 		go func(bh types.Hash) {
-			defer func() {
-				wg.Done()
-			}()
+			defer wg.Done()
 
-			revertRate, err := client.GetBlockRevertRateByHash(bh)
+			revertRate, err := client.GetBlockConfirmationRisk(bh)
 			if err != nil {
 				msg := fmt.Sprintf("get block revert rate by hash %v error", bh)
 				if errors == nil {
@@ -525,10 +511,11 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockHashs []types
 		}(blockhash)
 	}
 	wg.Wait()
+
 	return cache, errors
 }
 
-func (rc *RichClient) createTxDictsByBlockhashs(blockHashs []types.Hash, cache map[types.Hash]*blockAndRevertrate) ([]richtypes.TxDict, []error) {
+func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache map[types.Hash]*blockAndRevertrate) ([]richtypes.TxDict, []error) {
 
 	var errors = make([]error, 0)
 
@@ -541,7 +528,8 @@ func (rc *RichClient) createTxDictsByBlockhashs(blockHashs []types.Hash, cache m
 	txDicts := make([]richtypes.TxDict, 0)
 
 	txs := make([]types.Transaction, 0)
-	for _, blockhash := range blockHashs {
+	for _, blockhash := range blockhashes {
+		fmt.Printf("cache[%v]= %+v\n", blockhash, cache[blockhash])
 		txs = append(txs, cache[blockhash].block.Transactions...)
 	}
 
@@ -561,10 +549,8 @@ func (rc *RichClient) createTxDictsByBlockhashs(blockHashs []types.Hash, cache m
 
 			go func(_tx types.Transaction) {
 
-				defer func() {
-					wg.Done()
-					//fmt.Println("excute tx done:", excuted)
-				}()
+				defer wg.Done()
+				//fmt.Println("excute tx done:", excuted)
 
 				// blockhash null means that tx is excuted by other block, so skip it
 				if _tx.BlockHash == nil {
@@ -604,4 +590,12 @@ func joinError(errs []error) error {
 		return errors.New(joinedErr)
 	}
 	return nil
+}
+
+func jsonIt(input interface{}) string {
+	j, err := json.Marshal(input)
+	if err != nil {
+		panic(err)
+	}
+	return string(j)
 }
