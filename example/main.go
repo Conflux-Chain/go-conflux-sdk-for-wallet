@@ -12,7 +12,7 @@ import (
 )
 
 var rc *richsdk.RichClient
-var contractErc20Address = types.Address("0x8f1230f70d0984e29cb7b1d02547c361f85a93fa")
+var contractErc20Address = types.Address("0x8c3da77847b4efa454e6081dd4e898265d1787a2")
 var contractErc777Address = types.Address("0x8726be94d7503b05f1738f026f00e74348c3d3eb")
 
 func init() {
@@ -115,10 +115,7 @@ func testGetTransactionsFromPool() {
 
 func testGetTransactionsByEpoch() {
 	start := time.Now()
-	// epochNum := big.NewInt(1267420) //888 txs
-	// epochNum := big.NewInt(2356824) //45 txs
-	epochNum := big.NewInt(2478524) //4 txs
-	// epochNum := big.NewInt(2375610) //1 txs
+	epochNum := big.NewInt(394508)
 
 	txdicts, err := rc.GetTxDictsByEpoch(types.NewEpochNumber(epochNum))
 	if err != nil {
@@ -128,7 +125,7 @@ func testGetTransactionsByEpoch() {
 }
 
 func testGetTxDictByTxHash() {
-	hash := types.Hash("0xaed27380dcc0d96371d553d68811d6feffdbe3c2183c82128be53df7268a88a1")
+	hash := types.Hash("0xeb34792e27e00c081843e308de428cf792631524a3072162ce1f4bf63ea0e843")
 	txdict, err := rc.GetTxDictByTxHash(hash)
 	if err != nil {
 		panic(err)

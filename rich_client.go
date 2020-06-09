@@ -312,9 +312,9 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return nil, types.WrapError(err, msg)
 	}
 
-	data, err := rc.getDataForTransToken(cInfo.GetContractType(), contract, to, amount)
+	data, err := rc.getDataForTransToken(cInfo.GetContractTypeByABI(), contract, to, amount)
 	if err != nil {
-		msg := fmt.Sprintf("get data for transfer token method error, contract type {%+v} ", cInfo.GetContractType())
+		msg := fmt.Sprintf("get data for transfer token method error, contract type {%+v} ", cInfo.GetContractTypeByABI())
 		return nil, types.WrapError(err, msg)
 	}
 
@@ -359,6 +359,7 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 	// if cInfo.ContractType == scantypes.DEX {
 	// 	data, err = contract.GetData()
 	// }
+
 	msg := fmt.Sprintf("Do not support build data for transfer token function of contract type %+v", contractType)
 	err = errors.New(msg)
 	return nil, err
@@ -529,7 +530,7 @@ func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache
 
 	txs := make([]types.Transaction, 0)
 	for _, blockhash := range blockhashes {
-		fmt.Printf("cache[%v]= %+v\n", blockhash, cache[blockhash])
+		// fmt.Printf("cache[%v]= %+v\n", blockhash, cache[blockhash])
 		txs = append(txs, cache[blockhash].block.Transactions...)
 	}
 

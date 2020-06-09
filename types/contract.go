@@ -76,6 +76,26 @@ func (c *Contract) GetContractType() ContractType {
 	return UNKNOWN
 }
 
+// GetContractTypeByABI acquires contract type by ABI
+func (c *Contract) GetContractTypeByABI() ContractType {
+	realContract, err := sdk.NewContract([]byte(c.ABI), nil, nil)
+	if err != nil {
+		return UNKNOWN
+	}
+	// method := realContract.ABI.Methods["0xa9059cbb"]
+
+	method, err := realContract.ABI.MethodById([]byte{0xa9, 0x05, 0x9c, 0xbb})
+	if err == nil && method != nil {
+		return ERC20
+	}
+
+	method, err = realContract.ABI.MethodById([]byte{0x9b, 0xd9, 0xbb, 0xc6})
+	if err == nil && method != nil {
+		return ERC777
+	}
+	return UNKNOWN
+}
+
 // // String implements the fmt.Stringer interface
 // func (c ContractType) String() string {
 // 	dic := make(map[ContractType]string)
