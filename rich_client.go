@@ -61,11 +61,11 @@ type blockAndRevertrate struct {
 
 // default value of server config
 var (
-	accountTokensPath     = "/api/account/token/list"
-	tokenTransferListPath = "/future/transfer/list"
-	txListPath            = "/future/transaction/list"
-	contractQueryPath     = "/api/contract/query"
-	tokenQuery            = "/future/token/query"
+	accountTokensPath     = "/api/account/token/list" //contract manager
+	tokenTransferListPath = "/api/transfer/list"      //cfx scan backend
+	txListPath            = "/api/transaction/list"   //cfx scan backend
+	contractQueryPath     = "/api/contract/query"     //contract manager
+	tokenQuery            = "/api/token/query"        //cfx scan backend
 
 	cfxScanBackend = &scanServer{
 		Scheme:        "http",
@@ -153,7 +153,7 @@ func (s *scanServer) URL(path string, params map[string]interface{}) string {
 // Get sends a "Get" request and fill the unmarshaled value of field "Result" in response to unmarshaledResult
 func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaledResult interface{}) error {
 	client := s.HTTPRequester
-	//fmt.Println("request url:", s.URL(path, params))
+	// fmt.Println("request url:", s.URL(path, params))
 	rspBytes, err := client.Get(s.URL(path, params))
 	if err != nil {
 		return err
@@ -170,14 +170,14 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 	if err != nil {
 		return err
 	}
-	// //fmt.Printf("body:%+v\n\n", string(body))
+	//fmt.Printf("body:%+v\n\n", string(body))
 
 	var rsp richtypes.Response
 	err = json.Unmarshal(body, &rsp)
 	if err != nil {
 		return err
 	}
-	// //fmt.Printf("unmarshaled body: %+v\n\n", rsp)
+	//fmt.Printf("unmarshaled body: %+v\n\n", rsp)
 
 	if rsp.Code != 0 {
 		msg := fmt.Sprintf("code:%+v, message:%+v", rsp.Code, rsp.Message)
@@ -188,13 +188,13 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 	if err != nil {
 		return err
 	}
-	// //fmt.Printf("marshaled result: %+v\n\n", string(rstBytes))
+	//fmt.Printf("marshaled result: %+v\n\n", string(rstBytes))
 
 	err = json.Unmarshal(rstBytes, unmarshaledResult)
 	if err != nil {
 		return err
 	}
-	// //fmt.Printf("unmarshaled result: %+v\n\n", unmarshaledResult)
+	//fmt.Printf("unmarshaled result: %+v\n\n", unmarshaledResult)
 	return nil
 }
 
@@ -204,7 +204,7 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 // otherwise returns transactions about main coin.
 func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdentifier *types.Address, pageNumber, pageSize uint) (*richtypes.TokenTransferEventList, error) {
 	params := make(map[string]interface{})
-	params["address"] = address
+	params["accountAddress"] = address
 	params["page"] = pageNumber
 	params["pageSize"] = pageSize
 	params["txType"] = "all"
@@ -214,17 +214,20 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	// when tokenIdentifier is not nil return transfer events of the token
 	if tokenIdentifier != nil {
 		var tts richtypes.TokenTransferEventList
-		params["contractAddress"] = *tokenIdentifier
+		params["tokenAddress"] = *tokenIdentifier
 		err := rc.cfxScanBackend.Get(tokenTransferListPath, params, &tts)
 		if err != nil {
 			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", tokenTransferListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
 		tteList = &tts
+		// fmt.Printf("%+v", tteList)
 
 		// batch get blockhash through getTransactionByHash
 		blockhashes = make([]types.Hash, 0, len(tteList.List))
 		txhashes := make([]types.Hash, len(tteList.List))
+		tokenAddressToTokenInfoMap := make(map[types.Address]*richtypes.Token)
+
 		for i := range tteList.List {
 			txhashes[i] = tteList.List[i].TransactionHash
 		}
@@ -248,6 +251,20 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			if txhashToTxMap[th] != nil && txhashToTxMap[th].BlockHash != nil {
 				blockhashes = append(blockhashes, *txhashToTxMap[th].BlockHash)
 			}
+		}
+
+		// set token info
+		for i := range tteList.List {
+			tokenAddress := tteList.List[i].ContractAddress
+			if _, ok := tokenAddressToTokenInfoMap[tokenAddress]; !ok {
+				contract, err := rc.GetContractInfo(tokenAddress, true)
+				if err != nil {
+					msg := fmt.Sprintf("get token info of %v error", tokenAddress)
+					return nil, types.WrapError(err, msg)
+				}
+				tokenAddressToTokenInfoMap[tokenAddress] = &contract.Token
+			}
+			tteList.List[i].Token = *tokenAddressToTokenInfoMap[tokenAddress]
 		}
 
 	} else {
@@ -295,14 +312,10 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return tx, nil
 	}
 
-	params := make(map[string]interface{})
-	params["address"] = tokenIdentifier
-	params["fields"] = "abi,typeCode"
-
-	var cInfo richtypes.Contract
-	err := rc.contractManager.Get(contractQueryPath, params, &cInfo)
+	cInfo, err := rc.GetContractInfo(*tokenIdentifier, true)
 	if err != nil {
-		msg := fmt.Sprintf("get and unmarsal data from contract manager server with path {%+v}, paramas {%+v} error", contractQueryPath, params)
+		// msg := fmt.Sprintf("get and unmarsal data from contract manager server with path {%+v}, paramas {%+v} error", contractQueryPath, params)
+		msg := fmt.Sprintf("get contract info of %v error", tokenIdentifier)
 		return nil, types.WrapError(err, msg)
 	}
 
@@ -318,7 +331,7 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return nil, types.WrapError(err, msg)
 	}
 
-	tx, err := rc.client.CreateUnsignedTransaction(from, to, nil, data)
+	tx, err := rc.client.CreateUnsignedTransaction(from, *tokenIdentifier, nil, data)
 	if err != nil {
 		msg := fmt.Sprintf("create transaction with params {from: %+v, to: %+v, data: %+v} error ", from, to, data)
 		return nil, types.WrapError(err, msg)
@@ -365,10 +378,14 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 	return nil, err
 }
 
-// GetContractByIdentifier returns token detail infomation of token identifier
-func (rc *RichClient) GetContractByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error) {
+// GetContractInfo returns token detail infomation of token identifier
+func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI bool) (*richtypes.Contract, error) {
 	params := make(map[string]interface{})
-	params["address"] = tokenIdentifier
+	params["address"] = contractAddress
+	params["fields"] = "tokenIcon"
+	if needABI {
+		params["fields"] = "tokenIcon,abi"
+	}
 	var contract richtypes.Contract
 	err := rc.contractManager.Get(contractQueryPath, params, &contract)
 	if err != nil {

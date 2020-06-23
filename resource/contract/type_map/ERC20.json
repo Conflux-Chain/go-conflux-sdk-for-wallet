@@ -13,4 +13,9 @@
 {
     "elem_name":"decimals",
     "elem_type":"DecimalsFunction"
-}]
+},
+{
+    "elem_name":"transfer",
+    "elem_type":"TransferFunction"
+}
+]

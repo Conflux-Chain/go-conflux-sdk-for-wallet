@@ -93,12 +93,12 @@ func (rc *RichClient) GetClient() sdk.ClientOperator
 ```
 GetClient returns client
 
-#### func (*RichClient) GetContractByIdentifier
+#### func (*RichClient) GetContractInfo
 
 ```go
-func (rc *RichClient) GetContractByIdentifier(tokenIdentifier types.Address) (*richtypes.Contract, error)
+func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI bool) (*richtypes.Contract, error)
 ```
-GetContractByIdentifier returns token detail infomation of token identifier
+GetContractInfo returns token detail infomation of token identifier
 
 #### func (*RichClient) GetTransactionsFromPool
 
@@ -143,22 +143,6 @@ type ServerConfig struct {
 ServerConfig represents cfx-scan-backend and contract-manager configurations,
 because centralized servers maybe changed.
 
-### type TxDictBaseConverter
-
-```go
-type TxDictBaseConverter struct {
-}
-```
-
-TxDictBaseConverter contains methods for convert other types to TxDictBase.
-
-#### func (*TxDictBaseConverter) ConvertByUnsignedTransaction
-
-```go
-func (tc *TxDictBaseConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransaction) *richtypes.TxDictBase
-```
-ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase.
-
 ### type TxDictConverter
 
 ```go
@@ -188,3 +172,10 @@ ConvertByTokenTransferEvent converts richtypes.TokenTransferEvent to TxDict.
 func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRate *big.Float, blockTime *hexutil.Uint64) (*richtypes.TxDict, error)
 ```
 ConvertByTransaction converts types.Transaction to TxDict.
+
+#### func (*TxDictConverter) ConvertByUnsignedTransaction
+
+```go
+func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransaction) *richtypes.TxDictBase
+```
+ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase.

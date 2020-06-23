@@ -1,7 +1,4 @@
-mv ./interface.go ./interface.go.tmd
 godocdown -o tmp.md
-
-mv ./interface.go.tmd ./interface.go
 
 sed -i "" 's/## Usage//g' tmp.md 
 sed -i "" 's/#### type/### type/g' tmp.md

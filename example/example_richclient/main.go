@@ -18,7 +18,7 @@ var contractErc777Address = types.Address("0x8726be94d7503b05f1738f026f00e74348c
 func init() {
 
 	//unlock account
-	am := sdk.NewAccountManager("./keystore")
+	am := sdk.NewAccountManager("../keystore")
 	err := am.TimedUnlockDefault("hello", 300*time.Second)
 	if err != nil {
 		panic(err)
