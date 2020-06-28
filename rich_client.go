@@ -378,7 +378,8 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 	return nil, err
 }
 
-// GetContractInfo returns token detail infomation of token identifier
+// GetContractInfo returns contract detail infomation, it will contains token info if it is token contract,
+// it will contains abi if set needABI to be true.
 func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI bool) (*richtypes.Contract, error) {
 	params := make(map[string]interface{})
 	params["address"] = contractAddress
@@ -394,19 +395,6 @@ func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI boo
 	}
 	return &contract, nil
 }
-
-// // GetTokenByIdentifier returns token detail infomation of token identifier
-// func (rc *RichClient) GetTokenByIdentifier(tokenIdentifier types.Address) (*richtypes.Token, error) {
-// 	params := make(map[string]interface{})
-// 	params["address"] = tokenIdentifier
-// 	var contract richtypes.Token
-// 	err := rc.cfxScanBackend.Get(tokenQuery, params, &contract)
-// 	if err != nil {
-// 		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", contractQueryPath, params)
-// 		return nil, types.WrapError(err, msg)
-// 	}
-// 	return &contract, nil
-// }
 
 // GetAccountTokens returns coin balance and all token balances of specified address
 func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenWithBlanceList, error) {
