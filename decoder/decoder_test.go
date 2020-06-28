@@ -73,12 +73,12 @@ func TestDecode(t *testing.T) {
 	}
 
 	for _, data := range datas {
-		eventDecoder, err := NewEventDecoder()
+		eventDecoder, err := NewContractDecoder()
 		if err != nil {
 			t.Error(err)
 		}
 
-		actual, err := eventDecoder.Decode(&data.log)
+		actual, err := eventDecoder.DecodeEvent(&data.log)
 		if err != nil {
 			t.Error(err)
 		}

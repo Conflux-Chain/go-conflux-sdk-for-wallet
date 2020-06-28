@@ -8,7 +8,9 @@ import (
 	"fmt"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
+	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 // ContractType represents contract type
@@ -40,41 +42,45 @@ const (
 	NameFunction     ContractElemType = "NameFunction"
 	SymbolFunction   ContractElemType = "SymbolFunction"
 	DecimalsFunction ContractElemType = "DecimalsFunction"
+	TransferFunction ContractElemType = "TransferFunction"
 )
 
 // Contract describe response contract information of scan rest api request
 type Contract struct {
-	TypeCode      uint   `json:"typeCode"`
-	ContractName  string `json:"name"`
-	ABI           string `json:"abi"`
-	TokenSymbol   string `json:"tokenSymbol"`
-	TokenDecimals uint64 `json:"tokenDecimals"`
-	TokenIcon     string `json:"tokenIcon"`
-	TokenName     string `json:"tokenName"`
+	Token     `json:"token"`
+	ABI       string `json:"abi"`
+	TokenIcon string `json:"tokenIcon"`
+	// TypeCode      uint   `json:"typeCode"`
+	// ContractName  string `json:"name"`
+
+	// TokenSymbol   string `json:"tokenSymbol"`
+	// TokenDecimals uint64 `json:"tokenDecimals"`
+
+	// TokenName     string `json:"tokenName"`
 }
 
 // GetContractType return contract type
-func (c *Contract) GetContractType() ContractType {
-	if c.TypeCode == 0 {
-		return GENERAL
-	}
-	if c.TypeCode >= 100 && c.TypeCode < 200 {
-		return ERC20
-	}
-	if c.TypeCode >= 200 && c.TypeCode < 300 {
-		return ERC777
-	}
-	if c.TypeCode == 201 {
-		return FANSCOIN
-	}
-	if c.TypeCode >= 500 && c.TypeCode < 600 {
-		return ERC721
-	}
-	if c.TypeCode >= 1000 {
-		return DEX
-	}
-	return UNKNOWN
-}
+// func (c *Contract) GetContractType() ContractType {
+// 	if c.TypeCode == 0 {
+// 		return GENERAL
+// 	}
+// 	if c.TypeCode >= 100 && c.TypeCode < 200 {
+// 		return ERC20
+// 	}
+// 	if c.TypeCode >= 200 && c.TypeCode < 300 {
+// 		return ERC777
+// 	}
+// 	if c.TypeCode == 201 {
+// 		return FANSCOIN
+// 	}
+// 	if c.TypeCode >= 500 && c.TypeCode < 600 {
+// 		return ERC721
+// 	}
+// 	if c.TypeCode >= 1000 {
+// 		return DEX
+// 	}
+// 	return UNKNOWN
+// }
 
 // GetContractTypeByABI acquires contract type by ABI
 func (c *Contract) GetContractTypeByABI() ContractType {
@@ -83,13 +89,14 @@ func (c *Contract) GetContractTypeByABI() ContractType {
 		return UNKNOWN
 	}
 	// method := realContract.ABI.Methods["0xa9059cbb"]
-
-	method, err := realContract.ABI.MethodById([]byte{0xa9, 0x05, 0x9c, 0xbb})
+	erc20sign, _ := hexutil.Decode(constants.Erc20TransferFuncSign)
+	method, err := realContract.ABI.MethodById(erc20sign)
 	if err == nil && method != nil {
 		return ERC20
 	}
 
-	method, err = realContract.ABI.MethodById([]byte{0x9b, 0xd9, 0xbb, 0xc6})
+	erc777sign, _ := hexutil.Decode(constants.Erc777SendFuncSign)
+	method, err = realContract.ABI.MethodById(erc777sign)
 	if err == nil && method != nil {
 		return ERC777
 	}
@@ -109,8 +116,8 @@ func (c *Contract) GetContractTypeByABI() ContractType {
 // 	return dic[c]
 // }
 
-// Decode decodes log into instance of event params struct
-func (contrete *ContractElemConcrete) Decode(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
+// DecodeEvent decodes log into instance of event params struct
+func (contrete *ContractElemConcrete) DecodeEvent(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
 	switch contrete.ElemType {
 	case TransferEvent:
 		switch contrete.ContractType {
@@ -132,7 +139,34 @@ func (contrete *ContractElemConcrete) Decode(log *types.LogEntry) (eventParmsPtr
 			eventParmsPtr = &params
 			return
 		}
+
 	}
 
 	return nil, fmt.Errorf("not found tuple type for contract type: %v, event type: %v", contrete.ContractType, contrete.ElemType)
+}
+
+// DecodeFunction decodes packed data into instance of function params struct
+func (contrete *ContractElemConcrete) DecodeFunction(data []byte) (functionParmsPtr interface{}, err error) {
+	id := data[0:4]
+	method, err := contrete.Contract.ABI.MethodById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	switch contrete.ElemType {
+	case TransferFunction:
+		switch contrete.ContractType {
+		case ERC20:
+			params := ERC20TokenTransferFunctionParams{}
+			err = method.Inputs.Unpack(&params, data[4:])
+			functionParmsPtr = &params
+			return
+		case ERC777:
+			params := ERC777TokenTransferFunctionParams{}
+			err = method.Inputs.Unpack(&params, data[4:])
+			functionParmsPtr = &params
+			return
+		}
+	}
+	return nil, fmt.Errorf("not found tuple type for contract type: %v, function type: %v", contrete.ContractType, contrete.ElemType)
 }

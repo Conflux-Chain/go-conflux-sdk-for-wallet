@@ -12,7 +12,7 @@ import (
 // Transaction represents transction information response from scan service
 type Transaction struct {
 	Hash             types.Hash    `json:"hash"`
-	Nonce            string        `json:"nonce"`
+	Nonce            uint64        `json:"nonce"`
 	BlockHash        types.Hash    `json:"blockHash,omitempty"`
 	TransactionIndex uint64        `json:"transactionIndex,omitempty"`
 	From             types.Address `json:"from"`
@@ -21,23 +21,23 @@ type Transaction struct {
 	GasPrice         string        `json:"gasPrice"`
 	Gas              string        `json:"gas"`
 	ContractCreated  types.Address `json:"contractCreated,omitempty"`
-	Data             string        `json:"data"`
+	Data             string        `json:"data,omitempty"`
 	Status           uint64        `json:"status,omitempty"`
 	Timestamp        JSONTime      `json:"timestamp"`
 }
 
 // TransactionList represents a list of transaction
 type TransactionList struct {
-	Total     uint64        `json:"total"`
-	ListLimit uint64        `json:"listLimit"`
-	List      []Transaction `json:"list"`
+	Total uint64 `json:"total"`
+	// ListLimit uint64        `json:"listLimit"`
+	List []Transaction `json:"list"`
 }
 
 // ToTokenTransferEvent converts Transaction to TokenTransferEvent
 func (tx *Transaction) ToTokenTransferEvent() *TokenTransferEvent {
 	var tte TokenTransferEvent
 	tte.TransactionHash = tx.Hash
-	tte.Status = tx.Status
+	// tte.Status = tx.Status
 	tte.From = tx.From
 	tte.To = tx.To
 	tte.Value = tx.Value
@@ -47,7 +47,7 @@ func (tx *Transaction) ToTokenTransferEvent() *TokenTransferEvent {
 	tte.TokenName = constants.CFXName
 	tte.TokenSymbol = constants.CFXSymbol
 	tte.TokenDecimal = constants.CFXDecimal
-	tte.TokenType = UNKNOWN
+	// tte.TokenType = UNKNOWN
 
 	return &tte
 }
@@ -57,7 +57,7 @@ func (txs *TransactionList) ToTokenTransferEventList() *TokenTransferEventList {
 	var tteList TokenTransferEventList
 
 	tteList.Total = txs.Total
-	tteList.ListLimit = txs.ListLimit
+	// tteList.ListLimit = txs.ListLimit
 	listLen := len(txs.List)
 	tteList.List = make([]TokenTransferEvent, listLen)
 

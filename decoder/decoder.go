@@ -14,34 +14,51 @@ import (
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
 	types "github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-// EventDecoder for decode event
-type EventDecoder struct {
-	// EventHashToConcreteDic maps event ID to event contrete
-	EventHashToConcreteDic map[types.Hash][]richtypes.ContractElemConcrete
+// ContractDecoder for decode event
+type ContractDecoder struct {
+	// ElemIdToToConcreteDicCache maps event ID to event contrete
+	ElemIdToToConcreteDicCache map[string][]richtypes.ContractElemConcrete
 }
 
-var eventHashToConcreteDicCache map[types.Hash][]richtypes.ContractElemConcrete
+// type FunctionDecoder struct {
+// 	ElemIdToToConcreteDicCache map[string][]richtypes.ContractElemConcrete
+// }
 
-// NewEventDecoder creates an EventDecoder instance
-func NewEventDecoder() (*EventDecoder, error) {
-	dic, err := createEventHashToConcreteDic()
+var contractElemIdToToConcreteDicCache map[string][]richtypes.ContractElemConcrete
+
+// NewContractDecoder creates an EventDecoder instance
+func NewContractDecoder() (*ContractDecoder, error) {
+	dic, err := createContractElemIdToConcreteDic()
 	if err != nil {
 		return nil, err
 	}
 
-	return &EventDecoder{
-		EventHashToConcreteDic: dic,
+	return &ContractDecoder{
+		ElemIdToToConcreteDicCache: dic,
 	}, nil
 }
 
-func createEventHashToConcreteDic() (map[types.Hash][]richtypes.ContractElemConcrete, error) {
-	if eventHashToConcreteDicCache != nil {
-		return eventHashToConcreteDicCache, nil
+// // NewFunctionDecoder creates an EventDecoder instance
+// func NewFunctionDecoder() (*FunctionDecoder, error) {
+// 	dic, err := createContractElemIdToConcreteDic()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &FunctionDecoder{
+// 		ElemIdToToConcreteDicCache: dic,
+// 	}, nil
+// }
+
+func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemConcrete, error) {
+	if contractElemIdToToConcreteDicCache != nil {
+		return contractElemIdToToConcreteDicCache, nil
 	}
 
-	eventHashToConcreteDicCache = make(map[types.Hash][]richtypes.ContractElemConcrete)
+	contractElemIdToToConcreteDicCache = make(map[string][]richtypes.ContractElemConcrete)
 
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
@@ -102,20 +119,36 @@ func createEventHashToConcreteDic() (map[types.Hash][]richtypes.ContractElemConc
 			dotIndex := strings.Index(abiFile.Name(), ".")
 			contrete.ContractType = richtypes.ContractType(abiFile.Name()[0:dotIndex])
 
-			// generate dic for every enents
+			// generate dic for every enent
 			for _, event := range contract.ABI.Events {
 
 				if event.RawName == contrete.ElemName {
-					hash := types.Hash(event.ID.Hex())
-					if eventHashToConcreteDicCache[hash] == nil {
-						eventHashToConcreteDicCache[hash] = make([]richtypes.ContractElemConcrete, 0)
+					hash := event.ID.Hex()
+					if contractElemIdToToConcreteDicCache[hash] == nil {
+						contractElemIdToToConcreteDicCache[hash] = make([]richtypes.ContractElemConcrete, 0)
 					}
 
-					eventHashToConcreteDicCache[hash] = append(eventHashToConcreteDicCache[hash], contrete)
+					contractElemIdToToConcreteDicCache[hash] = append(contractElemIdToToConcreteDicCache[hash], contrete)
 					// event name in contract is unique, so jump out of loop
 					break
 				}
 			}
+
+			// generate dic for every function
+			for _, function := range contract.ABI.Methods {
+
+				if function.RawName == contrete.ElemName {
+					sign := hexutil.Encode(function.ID)
+					if contractElemIdToToConcreteDicCache[sign] == nil {
+						contractElemIdToToConcreteDicCache[sign] = make([]richtypes.ContractElemConcrete, 0)
+					}
+
+					contractElemIdToToConcreteDicCache[sign] = append(contractElemIdToToConcreteDicCache[sign], contrete)
+					// event name in contract is unique, so jump out of loop
+					break
+				}
+			}
+
 		}
 	}
 
@@ -124,16 +157,16 @@ func createEventHashToConcreteDic() (map[types.Hash][]richtypes.ContractElemConc
 	// fmt.Printf("hash:%v,concrete:%+v\n", k, v)
 	// }
 
-	return eventHashToConcreteDicCache, nil
+	return contractElemIdToToConcreteDicCache, nil
 }
 
 // GetMatchedConcrete ...
-func (ed *EventDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.ContractElemConcrete, error) {
+func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.ContractElemConcrete, error) {
 	if len(log.Topics) == 0 {
 		return nil, nil
 	}
 	// event parameters of abi needs be "from" "to" "value"
-	contretes := ed.EventHashToConcreteDic[log.Topics[0]]
+	contretes := cd.ElemIdToToConcreteDicCache[log.Topics[0].String()]
 
 	// if contretes length larger than 0, decode it
 	if len(contretes) > 0 {
@@ -176,14 +209,24 @@ func (ed *EventDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.Cont
 	return nil, nil
 }
 
-// Decode finds the unique matched event concrete with the log and decodes the log into instance of event params struct
-func (ed *EventDecoder) Decode(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
-	concrete, err := ed.GetMatchedConcrete(log)
+// DecodeEvent finds the unique matched event concrete with the log and decodes the log into instance of event params struct
+func (cd *ContractDecoder) DecodeEvent(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
+	concrete, err := cd.GetMatchedConcrete(log)
 	if err != nil {
 		return nil, err
 	}
 	if concrete != nil {
-		return concrete.Decode(log)
+		return concrete.DecodeEvent(log)
+	}
+	return nil, nil
+}
+
+// DecodeFunction finds the unique matched event concrete with the log and decodes the log into instance of event params struct
+func (cd *ContractDecoder) DecodeFunction(data []byte) (eventParmsPtr interface{}, err error) {
+	concrete := cd.ElemIdToToConcreteDicCache[hexutil.Encode(data[:4])]
+
+	if concrete != nil && len(concrete) > 0 {
+		return concrete[0].DecodeFunction(data)
 	}
 	return nil, nil
 }

@@ -9,4 +9,9 @@
 {
     "elem_name":"symbol",
     "elem_type":"SymbolFunction"
-}]
+},
+{
+    "elem_name":"safeTransferFrom",
+    "elem_type":"TransferFunction"
+}
+]
