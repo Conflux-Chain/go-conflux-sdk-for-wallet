@@ -98,7 +98,8 @@ GetClient returns client
 ```go
 func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI bool) (*richtypes.Contract, error)
 ```
-GetContractInfo returns token detail infomation of token identifier
+GetContractInfo returns contract detail infomation, it will contains token info
+if it is token contract, it will contains abi if set needABI to be true.
 
 #### func (*RichClient) GetTransactionsFromPool
 

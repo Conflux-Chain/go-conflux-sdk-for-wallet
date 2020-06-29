@@ -31,7 +31,7 @@ type TxUnit struct {
 	Value           *big.Int       `json:"value"`
 	Address         *types.Address `json:"address"`
 	Sn              uint64         `json:"sn"`
-	TokenCode       string         `json:"token_code"`
+	TokenCode       string         `json:"token_code,omitempty"`
 	TokenIdentifier *types.Address `json:"token_identifier"`
-	TokenDecimal    uint64         `json:"token_decimal"`
+	TokenDecimal    uint64         `json:"token_decimal,omitempty"`
 }

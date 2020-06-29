@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -8,6 +9,7 @@ import (
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	walletsdk "github.com/Conflux-Chain/go-conflux-sdk-for-wallet"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var converter *walletsdk.TxDictConverter
@@ -62,12 +64,14 @@ func init() {
 }
 
 func main() {
-	testTxDictConverter()
+	testConvertByTransaction()
+	testConvertByTokenTransferEvent()
+	testConvertByUnsignedTransaction()
+	testConvertByUnsignedTransactionWithoutNetwork()
 }
 
-func testTxDictConverter() {
-	// tx, err := rc.GetClient().GetTransactionByHash("0xaf5156c4a6f1c9bc90af3f34da5c8d62497543ae49c107654d858d3b2c02a0f1")//对应的block 有 788 条交易，rpc client会返回错误，大bug
-	tx, err := richClient.GetClient().GetTransactionByHash("0x86669c1d12e8d0882336b33f8d22d7b4bc7b4c92047a6c6c399c2ebbd16fb28e") //对应的block 有 45 条交易，rpc client会返回错误，大bug
+func testConvertByTransaction() {
+	tx, err := richClient.GetClient().GetTransactionByHash("0x86669c1d12e8d0882336b33f8d22d7b4bc7b4c92047a6c6c399c2ebbd16fb28e")
 	if err != nil {
 		panic(err)
 	}
@@ -78,25 +82,29 @@ func testTxDictConverter() {
 		panic(err)
 	}
 	fmt.Printf("Convert tx \n%v\nto txdict done:\n%+v\n\n", jsonFmt(tx), jsonFmt(txdict))
+}
 
+func testConvertByTokenTransferEvent() {
 	ttes, err := richClient.GetAccountTokenTransfers("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302", &contractErc20Address, 1, 10)
 	if err != nil {
 		panic(err)
 	}
 	// for _, tte := range ttes.List {
 	tte := ttes.List[0]
-	txdict, err = converter.ConvertByTokenTransferEvent(&tte)
+	txdict, err := converter.ConvertByTokenTransferEvent(&tte)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Convert TokenTransferEvent \n%+v\nto txdict result:\n%+v\n\n", jsonFmt(tte), jsonFmt(txdict))
-	// }
+}
+
+func testConvertByUnsignedTransaction() {
 
 	unsignedTx, err := richClient.CreateSendTokenTransaction(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), types.Address("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &contractErc20Address)
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Printf("create send erc20 token tx:%+v\n\n", jsonFmt(unsignedTx))
+
 	txdictBase := converter.ConvertByUnsignedTransaction(unsignedTx)
 	fmt.Printf("Convert erc20 UnsignedTransaction \n%v\nto TxDictBase done:\n%+v\n\n", jsonFmt(unsignedTx), jsonFmt(txdictBase))
 
@@ -104,9 +112,29 @@ func testTxDictConverter() {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Printf("create send erc777 token tx:%+v\n\n", jsonFmt(unsignedTx))
+
 	txdictBase = converter.ConvertByUnsignedTransaction(unsignedTx)
 	fmt.Printf("Convert erc777 UnsignedTransaction \n%v\nto TxDictBase done:\n%+v\n\n", jsonFmt(unsignedTx), jsonFmt(txdictBase))
+}
+
+func testConvertByUnsignedTransactionWithoutNetwork() {
+	data, _ := hex.DecodeString("a9059cbb0000000000000000000000001a6048c1d81190c9a3555d0a06d0699663c4ddf0000000000000000000000000000000000000000000000000000000000000000a")
+	unsignedTx := &types.UnsignedTransaction{
+		UnsignedTransactionBase: types.UnsignedTransactionBase{
+			From:         types.NewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"),
+			Nonce:        types.NewBigInt(0x9),
+			GasPrice:     types.NewBigInt(0x3b9aca00),
+			Gas:          types.NewBigInt(0x8fb1),
+			Value:        types.NewBigInt(0x0),
+			StorageLimit: types.NewBigInt(0x40),
+			EpochHeight:  types.NewBigInt(0x1eb1ea),
+			ChainID:      types.NewBigInt(0x1)},
+		To:   types.NewAddress("0x8c3da77847b4efa454e6081dd4e898265d1787a2"),
+		Data: hexutil.Bytes(data),
+	}
+
+	txdictBase := converter.ConvertByUnsignedTransaction(unsignedTx)
+	fmt.Printf("Convert erc20 UnsignedTransaction \n%v\nto TxDictBase done:\n%+v\n\n", jsonFmt(unsignedTx), jsonFmt(txdictBase))
 }
 
 func jsonFmt(input interface{}) string {

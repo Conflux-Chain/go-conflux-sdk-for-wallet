@@ -344,33 +344,33 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 		to := types.NewAddress(paramsV.FieldByName("To").Interface().(common.Address).String())
 
 		// get token
-		if _, ok := tc.tokenCache[*tx.To]; !ok {
-			contract, err := tc.richClient.GetContractInfo(*tx.To, true)
-			if err != nil {
-				// fmt.Printf("GetContractInfo err:%v\n\n", err)
-				return txDictBase
-			}
-			tc.tokenCache[*tx.To] = &contract.Token
-		}
+		// if _, ok := tc.tokenCache[*tx.To]; !ok {
+		// 	contract, err := tc.richClient.GetContractInfo(*tx.To, true)
+		// 	if err != nil {
+		// 		// fmt.Printf("GetContractInfo err:%v\n\n", err)
+		// 		return txDictBase
+		// 	}
+		// 	tc.tokenCache[*tx.To] = &contract.Token
+		// }
 
-		tokenInfo := tc.tokenCache[*tx.To]
+		// tokenInfo := tc.tokenCache[*tx.To]
 
 		txDictBase.Inputs = append(txDictBase.Inputs, richtypes.TxUnit{
 
-			Value:           amount,
-			Address:         tx.From,
-			Sn:              1,
-			TokenCode:       tokenInfo.TokenSymbol,
-			TokenDecimal:    tokenInfo.TokenDecimal,
+			Value:   amount,
+			Address: tx.From,
+			Sn:      1,
+			// TokenCode:       tokenInfo.TokenSymbol,
+			// TokenDecimal:    tokenInfo.TokenDecimal,
 			TokenIdentifier: tx.To,
 		},
 		)
 		txDictBase.Outputs = append(txDictBase.Outputs, richtypes.TxUnit{
-			Value:           amount,
-			Address:         to,
-			Sn:              1,
-			TokenCode:       tokenInfo.TokenSymbol,
-			TokenDecimal:    tokenInfo.TokenDecimal,
+			Value:   amount,
+			Address: to,
+			Sn:      1,
+			// TokenCode:       tokenInfo.TokenSymbol,
+			// TokenDecimal:    tokenInfo.TokenDecimal,
 			TokenIdentifier: tx.To,
 		})
 	}
