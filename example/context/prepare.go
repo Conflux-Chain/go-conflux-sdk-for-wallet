@@ -89,10 +89,10 @@ func initRichClient() {
 	serverConfig := new(walletsdk.ServerConfig)
 
 	// public test net (公共测试网)
-	serverConfig.CfxScanBackendSchema = "https"
-	serverConfig.CfxScanBackendAddress = "testnet-scantest.confluxscan.io"
-	serverConfig.ContractManagerSchema = "https"
-	serverConfig.ContractManagerAddress = "testnet-scantest.confluxscan.io/contract-manager"
+	serverConfig.CfxScanBackendSchema = config.CfxScanBackendSchema
+	serverConfig.CfxScanBackendAddress = config.CfxScanBackendAddress
+	serverConfig.ContractManagerSchema = config.ContractManagerSchema
+	serverConfig.ContractManagerAddress = config.ContractManagerAddress
 
 	// main net
 	// config.CfxScanBackendDomain = "47.102.164.229:8885"
