@@ -1,4 +1,6 @@
-[
+package abi
+
+var erc777 string = `[
 	{
 		"constant": true,
 		"inputs": [],
@@ -370,4 +372,4 @@
 		"name": "RevokedOperator",
 		"type": "event"
 	}
-]
+]`

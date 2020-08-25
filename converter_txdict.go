@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"time"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/decoder"
@@ -94,10 +95,21 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	}
 	// fmt.Println("create txdict done")
 
-	receipit, err := tc.richClient.GetClient().GetTransactionReceipt(tx.Hash)
-	if err != nil {
-		msg := fmt.Sprintf("get transaction receipt by hash %v error", tx.Hash)
-		return nil, types.WrapError(err, msg)
+	// wait tx be packed up to 5 seconds
+	var receipit *types.TransactionReceipt
+	for i := 0; i < 5; i++ {
+		receipit, err = tc.richClient.GetClient().GetTransactionReceipt(tx.Hash)
+		if err != nil {
+			msg := fmt.Sprintf("get transaction receipt by hash %v error", tx.Hash)
+			return nil, types.WrapError(err, msg)
+		}
+		if receipit != nil {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if receipit == nil {
+		return nil, errors.New("convert failed, transaction is not be packed with 5 seconds")
 	}
 	// fmt.Println("get tx receipt done")
 
@@ -179,10 +191,6 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.
 
 // fillTxDictByTxReceipt fills token transfers to txDict by analizing receipt
 func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, receipt *types.TransactionReceipt, sn *uint64) error {
-	// fmt.Println("start fillTxDictByTxReceipt")
-	defer func() {
-		// fmt.Println("fillTxDictByTxReceipt done")
-	}()
 	//decode event logs
 	logs := receipt.Logs
 	if len(logs) == 0 {

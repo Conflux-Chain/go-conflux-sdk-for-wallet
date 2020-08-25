@@ -1,3 +1,6 @@
+package abi
+
+var erc721 string = `
 [
 	{
 		"constant": true,
@@ -299,3 +302,4 @@
 		"type": "event"
 	}
 ]
+`

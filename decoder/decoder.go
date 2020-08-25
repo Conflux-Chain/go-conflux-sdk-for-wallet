@@ -1,16 +1,11 @@
 package decoder
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"path"
-	"runtime"
-	"strings"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
-	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/helper"
+	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/resource/contract/abi"
+	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/resource/contract/elem"
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
 	types "github.com/Conflux-Chain/go-conflux-sdk/types"
@@ -19,15 +14,11 @@ import (
 
 // ContractDecoder for decode event
 type ContractDecoder struct {
-	// ElemIdToToConcreteDicCache maps event ID to event contrete
-	ElemIdToToConcreteDicCache map[string][]richtypes.ContractElemConcrete
+	// ElemIdToConcreteDicCache maps event ID to event contrete
+	ElemIdToConcreteDicCache map[string][]richtypes.ContractElemConcrete
 }
 
-// type FunctionDecoder struct {
-// 	ElemIdToToConcreteDicCache map[string][]richtypes.ContractElemConcrete
-// }
-
-var contractElemIdToToConcreteDicCache map[string][]richtypes.ContractElemConcrete
+var contractElemIdToConcreteDicCache map[string][]richtypes.ContractElemConcrete
 
 // NewContractDecoder creates an EventDecoder instance
 func NewContractDecoder() (*ContractDecoder, error) {
@@ -37,98 +28,51 @@ func NewContractDecoder() (*ContractDecoder, error) {
 	}
 
 	return &ContractDecoder{
-		ElemIdToToConcreteDicCache: dic,
+		ElemIdToConcreteDicCache: dic,
 	}, nil
 }
 
-// // NewFunctionDecoder creates an EventDecoder instance
-// func NewFunctionDecoder() (*FunctionDecoder, error) {
-// 	dic, err := createContractElemIdToConcreteDic()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return &FunctionDecoder{
-// 		ElemIdToToConcreteDicCache: dic,
-// 	}, nil
-// }
-
+// createContractElemIdToConcreteDic creat mappings for contract element id, containts event id or function signature, to element concrete information.
 func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemConcrete, error) {
-	if contractElemIdToToConcreteDicCache != nil {
-		return contractElemIdToToConcreteDicCache, nil
+	if contractElemIdToConcreteDicCache != nil {
+		return contractElemIdToConcreteDicCache, nil
 	}
 
-	contractElemIdToToConcreteDicCache = make(map[string][]richtypes.ContractElemConcrete)
+	contractElemIdToConcreteDicCache = make(map[string][]richtypes.ContractElemConcrete)
 
-	_, currentFile, _, ok := runtime.Caller(0)
-	if !ok {
-		return nil, errors.New("could not get current file path")
-	}
-
-	var abiDir = path.Join(path.Dir(currentFile), "../resource/contract/abi")
-	var typeMapDir = path.Join(path.Dir(currentFile), "../resource/contract/type_map")
-	// foreach dir abi files to get contract
-
-	abiFiles, err := ioutil.ReadDir(abiDir)
-	if err != nil {
-		msg := fmt.Sprintf("read dir %v error", abiDir)
-		return nil, types.WrapError(err, msg)
-	}
-
-	for _, abiFile := range abiFiles {
+	for contractType, abiJSON := range abi.ABIJsonDic {
 		// get contract
-		abiJSON, err := ioutil.ReadFile(path.Join(abiDir, abiFile.Name()))
-		if err != nil {
-			msg := fmt.Sprintf("read file %v error", path.Join(abiDir, abiFile.Name()))
-			return nil, types.WrapError(err, msg)
-		}
 
 		var client *sdk.Client
-		contract, err := client.GetContract(abiJSON, types.NewAddress(constants.ZeroAddress.String()))
+		contract, err := client.GetContract([]byte(abiJSON), types.NewAddress(constants.ZeroAddress.String()))
 		if err != nil {
 			msg := fmt.Sprintf("unmarshal json {%+v} to ABI error", abiJSON)
 			return nil, types.WrapError(err, msg)
 		}
 
-		// get event type map
-		typeMapFileName := path.Join(typeMapDir, abiFile.Name())
-		if !helper.IsFileExists(typeMapFileName) {
-			continue
-		}
-
-		// unmarshal event type map
-		typeMapJSON, err := ioutil.ReadFile(typeMapFileName)
-		if err != nil {
-			msg := fmt.Sprintf("read file %v error", typeMapFileName)
-			return nil, types.WrapError(err, msg)
-		}
-
-		typeMap := []richtypes.ContractElemConcrete{}
-		err = json.Unmarshal(typeMapJSON, &typeMap)
-		if err != nil {
-			msg := fmt.Sprintf("unmarshal json {%+v} to typeMap error", typeMapJSON)
-			return nil, types.WrapError(err, msg)
+		elemConcretes := []richtypes.ContractElemConcrete{}
+		for _, value := range elem.GetContractElems(contractType) {
+			elemConcretes = append(elemConcretes, richtypes.ContractElemConcrete{ContractElem: value})
 		}
 
 		// fmt.Printf("get typeMap: %+v\n\n", typeMap)
-		for _, contrete := range typeMap {
+		for _, contrete := range elemConcretes {
 
-			// contrete := EventConcrete{}
 			contrete.Contract = contract
 			// get contract type by abi file name
-			dotIndex := strings.Index(abiFile.Name(), ".")
-			contrete.ContractType = richtypes.ContractType(abiFile.Name()[0:dotIndex])
+
+			contrete.ContractType = contractType
 
 			// generate dic for every enent
 			for _, event := range contract.ABI.Events {
 
 				if event.RawName == contrete.ElemName {
 					hash := event.ID.Hex()
-					if contractElemIdToToConcreteDicCache[hash] == nil {
-						contractElemIdToToConcreteDicCache[hash] = make([]richtypes.ContractElemConcrete, 0)
+					if contractElemIdToConcreteDicCache[hash] == nil {
+						contractElemIdToConcreteDicCache[hash] = make([]richtypes.ContractElemConcrete, 0)
 					}
 
-					contractElemIdToToConcreteDicCache[hash] = append(contractElemIdToToConcreteDicCache[hash], contrete)
+					contractElemIdToConcreteDicCache[hash] = append(contractElemIdToConcreteDicCache[hash], contrete)
 					// event name in contract is unique, so jump out of loop
 					break
 				}
@@ -139,11 +83,11 @@ func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemCon
 
 				if function.RawName == contrete.ElemName {
 					sign := hexutil.Encode(function.ID)
-					if contractElemIdToToConcreteDicCache[sign] == nil {
-						contractElemIdToToConcreteDicCache[sign] = make([]richtypes.ContractElemConcrete, 0)
+					if contractElemIdToConcreteDicCache[sign] == nil {
+						contractElemIdToConcreteDicCache[sign] = make([]richtypes.ContractElemConcrete, 0)
 					}
 
-					contractElemIdToToConcreteDicCache[sign] = append(contractElemIdToToConcreteDicCache[sign], contrete)
+					contractElemIdToConcreteDicCache[sign] = append(contractElemIdToConcreteDicCache[sign], contrete)
 					// event name in contract is unique, so jump out of loop
 					break
 				}
@@ -152,12 +96,7 @@ func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemCon
 		}
 	}
 
-	// fmt.Println("EventHashToConcreteDic length:", len(eventHashToConcreteDicCache))
-	// for k, v := range eventHashToConcreteDicCache {
-	// fmt.Printf("hash:%v,concrete:%+v\n", k, v)
-	// }
-
-	return contractElemIdToToConcreteDicCache, nil
+	return contractElemIdToConcreteDicCache, nil
 }
 
 // GetMatchedConcrete ...
@@ -166,7 +105,7 @@ func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.C
 		return nil, nil
 	}
 	// event parameters of abi needs be "from" "to" "value"
-	contretes := cd.ElemIdToToConcreteDicCache[log.Topics[0].String()]
+	contretes := cd.ElemIdToConcreteDicCache[log.Topics[0].String()]
 
 	// if contretes length larger than 0, decode it
 	if len(contretes) > 0 {
@@ -223,7 +162,7 @@ func (cd *ContractDecoder) DecodeEvent(log *types.LogEntry) (eventParmsPtr inter
 
 // DecodeFunction finds the unique matched event concrete with the log and decodes the log into instance of event params struct
 func (cd *ContractDecoder) DecodeFunction(data []byte) (eventParmsPtr interface{}, err error) {
-	concrete := cd.ElemIdToToConcreteDicCache[hexutil.Encode(data[:4])]
+	concrete := cd.ElemIdToConcreteDicCache[hexutil.Encode(data[:4])]
 
 	if concrete != nil && len(concrete) > 0 {
 		return concrete[0].DecodeFunction(data)
