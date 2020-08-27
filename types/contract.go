@@ -19,12 +19,18 @@ type ContractType string
 // ContractElemType ...
 type ContractElemType string
 
+type ContractElem struct {
+	ElemName string           `json:"elem_name"`
+	ElemType ContractElemType `json:"elem_type"`
+}
+
 // ContractElemConcrete indicates contract element, such as events and methods
 type ContractElemConcrete struct {
-	ElemName     string           `json:"elem_name"`
-	Contract     *sdk.Contract    `json:"contract,omitempty"`
-	ContractType ContractType     `json:"contract_type"`
-	ElemType     ContractElemType `json:"elem_type"`
+	// ElemName     string           `json:"elem_name"`
+	Contract     *sdk.Contract `json:"contract,omitempty"`
+	ContractType ContractType  `json:"contract_type"`
+	// ElemType     ContractElemType `json:"elem_type"`
+	ContractElem
 }
 
 const (
