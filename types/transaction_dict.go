@@ -12,18 +12,20 @@ import (
 
 // TxDictBase is another representation of unsigned transaction which is designed for bitpie wallet
 type TxDictBase struct {
-	Inputs  []TxUnit `json:"inputs"`
-	Outputs []TxUnit `json:"outputs"`
+	Inputs   []TxUnit `json:"inputs"`
+	Outputs  []TxUnit `json:"outputs"`
+	Gas      *big.Int `json:"gas,omitempty"`
+	GasPrice *big.Int `json:"gas_price,omitempty"`
 }
 
 // TxDict is another representation of confirmed transaction which is designed for bitpie wallet
 type TxDict struct {
 	TxDictBase
-	TxHash types.Hash `json:"tx_hash"`
-	TxAt   JSONTime   `json:"tx_at"`
-	// Extra      interface{} `json:"extra"`
+	TxHash     types.Hash  `json:"tx_hash"`
+	TxAt       JSONTime    `json:"tx_at"`
 	RevertRate *big.Float  `json:"confirmed_at,omitempty"`
 	BlockHash  *types.Hash `json:"block_no,omitempty"`
+	// Extra      interface{} `json:"extra"`
 }
 
 // TxUnit represents a transaction unit

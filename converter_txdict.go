@@ -83,7 +83,7 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 		return nil, errors.New("tx is nil")
 	}
 
-	txDict, err := tc.createTxDict(tx.Hash, tx.BlockHash, revertRate, blockTime) //, &tx.From, tx.To, tx.Value)
+	txDict, err := tc.createTxDict(tx, revertRate, blockTime) //, &tx.From, tx.To, tx.Value)
 
 	sn := uint64(0)
 	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value, &sn)
@@ -122,12 +122,14 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	return txDict, nil
 }
 
-func (tc *TxDictConverter) createTxDict(txhash types.Hash, blockhash *types.Hash, revertRate *big.Float, blockTime *hexutil.Uint64) (*richtypes.TxDict, error) {
+func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.Float, blockTime *hexutil.Uint64) (*richtypes.TxDict, error) {
 
 	// fmt.Println("start creat txdict")
 	txDict := new(richtypes.TxDict)
-	txDict.TxHash = txhash
-	txDict.BlockHash = blockhash
+	txDict.TxHash = tx.Hash
+	txDict.BlockHash = tx.BlockHash
+	txDict.Gas = tx.Gas.ToInt()
+	txDict.GasPrice = tx.GasPrice.ToInt()
 	txDict.Inputs = make([]richtypes.TxUnit, 0)
 	txDict.Outputs = make([]richtypes.TxUnit, 0)
 
@@ -137,24 +139,24 @@ func (tc *TxDictConverter) createTxDict(txhash types.Hash, blockhash *types.Hash
 		return nil, errors.New(msg)
 	}
 
-	if revertRate == nil && blockhash != nil {
+	if revertRate == nil && tx.BlockHash != nil {
 		// fmt.Println("start get block revert rate by hash")
 		var err error
-		revertRate, err = client.GetBlockConfirmationRisk(*blockhash)
+		revertRate, err = client.GetBlockConfirmationRisk(*tx.BlockHash)
 		if err != nil {
-			msg := fmt.Sprintf("get block revert rate by hash %v error", blockhash)
+			msg := fmt.Sprintf("get block revert rate by hash %v error", tx.BlockHash)
 			return nil, types.WrapError(err, msg)
 		}
 		// fmt.Println("get block revert rate by hash done")
 	}
 	txDict.RevertRate = revertRate
 
-	if blockTime == nil && blockhash != nil {
+	if blockTime == nil && tx.BlockHash != nil {
 		// fmt.Println("start get block by hash ", *blockhash)
 		var err error
-		block, err := client.GetBlockByHash(*blockhash)
+		block, err := client.GetBlockByHash(*tx.BlockHash)
 		if err != nil {
-			msg := fmt.Sprintf("get block by hash %v error", blockhash)
+			msg := fmt.Sprintf("get block by hash %v error", tx.BlockHash)
 			return nil, types.WrapError(err, msg)
 		}
 		blockTime = block.Timestamp
@@ -191,6 +193,10 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.
 
 // fillTxDictByTxReceipt fills token transfers to txDict by analizing receipt
 func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, receipt *types.TransactionReceipt, sn *uint64) error {
+	if txDict == nil || receipt == nil || sn == nil {
+		return errors.New("all of txdict, receipt and sn could not be nil")
+	}
+
 	//decode event logs
 	logs := receipt.Logs
 	if len(logs) == 0 {
@@ -305,6 +311,13 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 // ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase.
 func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransaction) *richtypes.TxDictBase {
 	txDictBase := new(richtypes.TxDictBase)
+	if tx.Gas != nil {
+		txDictBase.Gas = tx.Gas.ToInt()
+	}
+
+	if tx.GasPrice != nil {
+		txDictBase.GasPrice = tx.GasPrice.ToInt()
+	}
 
 	value := big.Int(*tx.Value)
 	txDictBase.Inputs = []richtypes.TxUnit{
@@ -351,34 +364,18 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 		paramsV := reflect.ValueOf(funcParams).Elem()
 		to := types.NewAddress(paramsV.FieldByName("To").Interface().(common.Address).String())
 
-		// get token
-		// if _, ok := tc.tokenCache[*tx.To]; !ok {
-		// 	contract, err := tc.richClient.GetContractInfo(*tx.To, true)
-		// 	if err != nil {
-		// 		// fmt.Printf("GetContractInfo err:%v\n\n", err)
-		// 		return txDictBase
-		// 	}
-		// 	tc.tokenCache[*tx.To] = &contract.Token
-		// }
-
-		// tokenInfo := tc.tokenCache[*tx.To]
-
 		txDictBase.Inputs = append(txDictBase.Inputs, richtypes.TxUnit{
 
-			Value:   amount,
-			Address: tx.From,
-			Sn:      1,
-			// TokenCode:       tokenInfo.TokenSymbol,
-			// TokenDecimal:    tokenInfo.TokenDecimal,
+			Value:           amount,
+			Address:         tx.From,
+			Sn:              1,
 			TokenIdentifier: tx.To,
 		},
 		)
 		txDictBase.Outputs = append(txDictBase.Outputs, richtypes.TxUnit{
-			Value:   amount,
-			Address: to,
-			Sn:      1,
-			// TokenCode:       tokenInfo.TokenSymbol,
-			// TokenDecimal:    tokenInfo.TokenDecimal,
+			Value:           amount,
+			Address:         to,
+			Sn:              1,
 			TokenIdentifier: tx.To,
 		})
 	}

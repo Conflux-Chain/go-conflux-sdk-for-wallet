@@ -69,6 +69,8 @@ func testConvertByUnsignedTransaction() {
 	if err != nil {
 		panic(err)
 	}
+	unsignedTx.Gas = types.NewBigInt(1000)
+	unsignedTx.GasPrice = types.NewBigInt(10000)
 
 	txdictBase := converter.ConvertByUnsignedTransaction(unsignedTx)
 	fmt.Printf("- Convert erc20 UnsignedTransaction \n%v\nto TxDictBase done:\n%+v\n\n", context.JsonFmt(unsignedTx), context.JsonFmt(txdictBase))
