@@ -193,6 +193,10 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.
 
 // fillTxDictByTxReceipt fills token transfers to txDict by analizing receipt
 func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, receipt *types.TransactionReceipt, sn *uint64) error {
+	if receipt == nil {
+		return errors.New("receipt could not be nil")
+	}
+
 	//decode event logs
 	logs := receipt.Logs
 	if len(logs) == 0 {
