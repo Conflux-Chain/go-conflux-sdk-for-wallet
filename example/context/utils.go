@@ -31,5 +31,6 @@ func WaitPacked(txhash types.Hash) {
 			fmt.Printf("transaction is packed:%+v\n\n", JsonFmt(tx))
 			break
 		}
+		fmt.Printf(".")
 	}
 }

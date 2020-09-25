@@ -28,15 +28,17 @@ func init() {
 
 func main() {
 	fmt.Println("=======strat txdict converter example=======")
-	testConvertByTransaction()
+	testConvertByTransaction(config.NormalTransactions[0])
+	testConvertByTransaction(config.ERC20Transactions[0])
+
 	testConvertByTokenTransferEvent()
 	testConvertByUnsignedTransaction()
 	testConvertByUnsignedTransactionWithoutNetwork()
 	fmt.Println("=======txdict converter example end!=========")
 }
 
-func testConvertByTransaction() {
-	tx, err := richClient.GetClient().GetTransactionByHash(config.ERC20Transactions[0])
+func testConvertByTransaction(hash types.Hash) {
+	tx, err := richClient.GetClient().GetTransactionByHash(hash)
 	if err != nil {
 		panic(err)
 	}

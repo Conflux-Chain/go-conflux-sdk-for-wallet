@@ -85,14 +85,14 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 
 	txDict, err := tc.createTxDict(tx, revertRate, blockTime) //, &tx.From, tx.To, tx.Value)
 
-	sn := uint64(0)
-	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value, &sn)
-
 	if err != nil {
 		msg := fmt.Sprintf("creat tx_dict with txHash:%v, blockHash:%v, from:%v, to:%v, value:%v error",
 			tx.Hash, tx.BlockHash, tx.From, tx.To, tx.Value)
 		return nil, types.WrapError(err, msg)
 	}
+
+	sn := uint64(0)
+	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value, &sn)
 	// fmt.Println("create txdict done")
 
 	// wait tx be packed up to 5 seconds
@@ -107,9 +107,11 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 			break
 		}
 		time.Sleep(time.Second)
+		fmt.Printf("receipt of %v : %+v\n", tx.Hash, receipit)
 	}
 	if receipit == nil {
-		return nil, errors.New("convert failed, transaction is not be packed with 5 seconds")
+		msg := fmt.Sprintf("convert failed, transaction %v is not be packed with in 5 seconds", tx.Hash)
+		return nil, errors.New(msg)
 	}
 	// fmt.Println("get tx receipt done")
 
@@ -162,7 +164,10 @@ func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.F
 		blockTime = block.Timestamp
 		// fmt.Println("get block by hash done")
 	}
-	txDict.TxAt = richtypes.JSONTime(*blockTime)
+	if blockTime != nil {
+		txDict.TxAt = richtypes.JSONTime(*blockTime)
+	}
+
 	return txDict, nil
 }
 
@@ -193,13 +198,15 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.
 
 // fillTxDictByTxReceipt fills token transfers to txDict by analizing receipt
 func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, receipt *types.TransactionReceipt, sn *uint64) error {
+	// fmt.Printf("tc: %+v, txDict: %+v, receipt: %+v, sn: %+v\n", tc, txDict, receipt, sn)
+
 	if txDict == nil || receipt == nil || sn == nil {
 		return errors.New("all of txdict, receipt and sn could not be nil")
 	}
 
 	//decode event logs
 	logs := receipt.Logs
-	if len(logs) == 0 {
+	if logs == nil || len(logs) == 0 || receipt.To == nil {
 		return nil
 	}
 
@@ -216,6 +223,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 		// fill fields to input and output of tx_dict
 		if eventParams != nil {
 			// fmt.Printf("gen input and output by eventParams %+v", eventParams)
+			// fmt.Printf("before getTokenByIdentifier, tc:%+v,log:%+v,receipt.To:%v", tc, log, receipt.To)
 			tokenInfo := tc.getTokenByIdentifier(&log, *receipt.To)
 			// get amount or value, if nil that means not token transfer
 			amount, err := getValueOrAmount(eventParams)

@@ -36,6 +36,7 @@ func Prepare() *exampletypes.Config {
 	initClient()
 	initRichClient()
 	deployContracts()
+	sendCfx()
 	sendTokens()
 	saveConfig()
 	fmt.Println("=======prepare config done!===========\n")
@@ -114,6 +115,17 @@ func deployContracts() {
 	erc20Contract = deployIfNotExist(config.ERC20Address, path.Join(currentDir, "contract/erc20.abi"), path.Join(currentDir, "contract/erc20.bytecode"))
 	erc777Contract = deployIfNotExist(config.ERC777Address, path.Join(currentDir, "contract/erc777.abi"), path.Join(currentDir, "contract/erc777.bytecode"))
 	fmt.Println("- to deploy contracts if not exist done")
+}
+
+func sendCfx() {
+	utx, err := client.CreateUnsignedTransaction(*defaultAccount, types.Address("0x10697db19a51514f83a7cc00cea2db0676724270"), types.NewBigInt(100), nil)
+	if err != nil {
+		panic(err)
+	}
+	txhash, err := client.SendTransaction(utx)
+	config.NormalTransactions = []types.Hash{txhash}
+	WaitPacked(txhash)
+	fmt.Println("- to send normal txs done")
 }
 
 func sendTokens() {
