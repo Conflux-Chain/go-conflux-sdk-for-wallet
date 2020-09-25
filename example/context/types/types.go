@@ -14,6 +14,7 @@ type Config struct {
 	ContractManagerAddress string
 	ERC20Address           types.Address
 	ERC777Address          types.Address
+	NormalTransactions     []types.Hash
 	ERC20Transactions      []types.Hash
 	ERC777Transactions     []types.Hash
 
