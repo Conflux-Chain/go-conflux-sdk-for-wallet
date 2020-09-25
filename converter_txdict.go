@@ -128,8 +128,8 @@ func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.F
 	txDict := new(richtypes.TxDict)
 	txDict.TxHash = tx.Hash
 	txDict.BlockHash = tx.BlockHash
-	txDict.Gas = tx.Gas.ToInt()
-	txDict.GasPrice = tx.GasPrice.ToInt()
+	txDict.Extra.Gas = tx.Gas.ToInt()
+	txDict.Extra.GasPrice = tx.GasPrice.ToInt()
 	txDict.Inputs = make([]richtypes.TxUnit, 0)
 	txDict.Outputs = make([]richtypes.TxUnit, 0)
 
@@ -312,11 +312,11 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransaction) *richtypes.TxDictBase {
 	txDictBase := new(richtypes.TxDictBase)
 	if tx.Gas != nil {
-		txDictBase.Gas = tx.Gas.ToInt()
+		txDictBase.Extra.Gas = tx.Gas.ToInt()
 	}
 
 	if tx.GasPrice != nil {
-		txDictBase.GasPrice = tx.GasPrice.ToInt()
+		txDictBase.Extra.GasPrice = tx.GasPrice.ToInt()
 	}
 
 	value := big.Int(*tx.Value)
