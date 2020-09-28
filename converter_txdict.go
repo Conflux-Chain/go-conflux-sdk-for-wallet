@@ -95,6 +95,12 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value, &sn)
 	// fmt.Println("create txdict done")
 
+	// no log will produced when transaction to is normal account or nil, so return
+	toType := tx.To.GetAddressType()
+	if toType == types.NormalAddress || toType == types.InvalidAddress {
+		return txDict, nil
+	}
+
 	// wait tx be packed up to 5 seconds
 	var receipit *types.TransactionReceipt
 	for i := 0; i < 5; i++ {
