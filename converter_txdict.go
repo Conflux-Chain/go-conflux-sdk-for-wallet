@@ -291,23 +291,29 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 		// currently there is no confusion methods exist, so call by the method name directly,
 		// if not we need use type_map file to identify the exactly contract type and method type.
 		err = realContract.Call(nil, &name, "name")
+
 		// the contract maybe not completely standard, so it is legal without name
-		if err != nil {
-			fmt.Printf("call function 'name' of contract address %+v which is %v error: %v\n\n", realContract.Address, concrete.ContractType, err)
-		}
+		// TODO: Add --dubeg flag for print logs
+		// if err != nil {
+		// 	fmt.Printf("call function 'name' of contract address %+v which is %v error: %v\n\n", realContract.Address, concrete.ContractType, err)
+		// }
 
 		err = realContract.Call(nil, &symbol, "symbol")
+
 		// the contract maybe not completely standard, so it is legal without symbol
-		if err != nil {
-			fmt.Printf("call function 'symbol' of contract address %+v which is %v error: %v\n\n", realContract.Address, concrete.ContractType, err)
-		}
+		// TODO: Add --dubeg flag for print logs
+		// if err != nil {
+		// 	fmt.Printf("call function 'symbol' of contract address %+v which is %v error: %v\n\n", realContract.Address, concrete.ContractType, err)
+		// }
 
 		if _, ok := realContract.ABI.Methods["decimals"]; ok {
 			err = realContract.Call(nil, &decimals, "decimals")
+
+			// TODO: Add --dubeg flag for print logs
 			// the contract maybe not completely standard, so it is legal without decimals
-			if err != nil {
-				fmt.Printf("call function 'decimals' of contract address %+v which is %v error: %v\n\n", realContract.Address, concrete.ContractType, err)
-			}
+			// if err != nil {
+			// 	fmt.Printf("call function 'decimals' of contract address %+v which is %v error: %v\n\n", realContract.Address, concrete.ContractType, err)
+			// }
 		}
 
 		tc.tokenCache[contractAddress] = &richtypes.Token{
