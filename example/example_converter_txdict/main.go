@@ -31,9 +31,9 @@ func main() {
 	testConvertByTransaction(config.NormalTransactions[0])
 	testConvertByTransaction(config.ERC20Transactions[0])
 
-	testConvertByTokenTransferEvent()
-	testConvertByUnsignedTransaction()
-	testConvertByUnsignedTransactionWithoutNetwork()
+	// testConvertByTokenTransferEvent()
+	// testConvertByUnsignedTransaction()
+	// testConvertByUnsignedTransactionWithoutNetwork()
 	fmt.Println("=======txdict converter example end!=========")
 }
 
