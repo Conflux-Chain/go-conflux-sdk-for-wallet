@@ -270,7 +270,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAddress types.Address) *richtypes.Token {
 	if _, ok := tc.tokenCache[contractAddress]; !ok {
 
-		concrete, err := tc.decoder.GetMatchedConcrete(log)
+		concrete, err := tc.decoder.GetTransferEventMatchedConcrete(log)
 		if err != nil {
 			tc.tokenCache[contractAddress] = nil
 			return nil

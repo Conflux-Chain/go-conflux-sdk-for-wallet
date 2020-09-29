@@ -118,6 +118,7 @@ func deployContracts() {
 }
 
 func sendCfx() {
+
 	if len(config.NormalTransactions) > 0 {
 		tx, err := client.GetTransactionByHash(config.NormalTransactions[0])
 		if err == nil && tx != nil {
@@ -126,10 +127,14 @@ func sendCfx() {
 	}
 
 	utx, err := client.CreateUnsignedTransaction(*defaultAccount, types.Address("0x10697db19a51514f83a7cc00cea2db0676724270"), types.NewBigInt(100), nil)
+	utx.Nonce = getNextNonceAndIncrease()
 	if err != nil {
 		panic(err)
 	}
 	txhash, err := client.SendTransaction(utx)
+	if err != nil {
+		panic(fmt.Sprintf("send tx %+v error: %v", utx, err))
+	}
 	config.NormalTransactions = []types.Hash{txhash}
 	WaitPacked(txhash)
 	fmt.Println("- to send normal txs done")

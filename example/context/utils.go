@@ -23,12 +23,12 @@ func WaitPacked(txhash types.Hash) {
 	fmt.Println("wait for transaction be packed")
 	for {
 		time.Sleep(time.Duration(1) * time.Second)
-		tx, err := client.GetTransactionByHash(txhash)
+		txReceipt, err := client.GetTransactionReceipt(txhash)
 		if err != nil {
 			panic(err)
 		}
-		if tx.Status != nil {
-			fmt.Printf("transaction is packed:%+v\n\n", JsonFmt(tx))
+		if txReceipt != nil {
+			fmt.Printf("transaction is packed:%+v\n\n", JsonFmt(txReceipt))
 			break
 		}
 		fmt.Printf(".")
