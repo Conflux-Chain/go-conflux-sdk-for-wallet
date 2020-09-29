@@ -99,8 +99,8 @@ func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemCon
 	return contractElemIdToConcreteDicCache, nil
 }
 
-// GetMatchedConcrete ...
-func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.ContractElemConcrete, error) {
+// GetTransferEventMatchedConcrete ...
+func (cd *ContractDecoder) GetTransferEventMatchedConcrete(log *types.LogEntry) (*richtypes.ContractElemConcrete, error) {
 	if len(log.Topics) == 0 {
 		return nil, nil
 	}
@@ -111,6 +111,7 @@ func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.C
 	if len(contretes) > 0 {
 		var erc20 *richtypes.ContractElemConcrete
 		var erc721 *richtypes.ContractElemConcrete
+		var erc777 *richtypes.ContractElemConcrete
 		var others []*richtypes.ContractElemConcrete
 		for i := range contretes {
 			if contretes[i].ElemType != richtypes.TransferEvent {
@@ -120,6 +121,8 @@ func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.C
 				erc20 = &contretes[i]
 			} else if contretes[i].ContractType == richtypes.ERC721 {
 				erc721 = &contretes[i]
+			} else if contretes[i].ContractType == richtypes.ERC777 {
+				erc777 = &contretes[i]
 			} else {
 				if others == nil {
 					others = make([]*richtypes.ContractElemConcrete, 0)
@@ -138,6 +141,10 @@ func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.C
 			return erc721, nil
 		}
 
+		if erc777 != nil {
+			return erc777, nil
+		}
+
 		// if others len is 1, docede it
 		if len(others) == 1 {
 			return others[0], nil
@@ -150,7 +157,7 @@ func (cd *ContractDecoder) GetMatchedConcrete(log *types.LogEntry) (*richtypes.C
 
 // DecodeEvent finds the unique matched event concrete with the log and decodes the log into instance of event params struct
 func (cd *ContractDecoder) DecodeEvent(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
-	concrete, err := cd.GetMatchedConcrete(log)
+	concrete, err := cd.GetTransferEventMatchedConcrete(log)
 	if err != nil {
 		return nil, err
 	}
