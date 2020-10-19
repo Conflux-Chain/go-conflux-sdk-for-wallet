@@ -570,12 +570,12 @@ func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache
 				txDict, err := tc.ConvertByTransaction(&_tx, cacheVal.revertRate, cacheVal.block.Timestamp)
 
 				mutex.Lock()
+				defer mutex.Unlock()
 				if err != nil {
 					errors = append(errors, err)
 					return
 				}
 				txDicts = append(txDicts, *txDict)
-				mutex.Unlock()
 			}(txs[excuted])
 			excuted++
 			//fmt.Println("excuting tx :", excuted)
