@@ -551,6 +551,8 @@ func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache
 		var wg sync.WaitGroup
 		wg.Add(con)
 
+		var mutex = new(sync.Mutex)
+
 		for i := 0; i < con; i++ {
 
 			go func(_tx types.Transaction) {
@@ -566,11 +568,14 @@ func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache
 				cacheVal := cache[*_tx.BlockHash]
 
 				txDict, err := tc.ConvertByTransaction(&_tx, cacheVal.revertRate, cacheVal.block.Timestamp)
+
+				mutex.Lock()
 				if err != nil {
 					errors = append(errors, err)
 					return
 				}
 				txDicts = append(txDicts, *txDict)
+				mutex.Unlock()
 			}(txs[excuted])
 			excuted++
 			//fmt.Println("excuting tx :", excuted)
