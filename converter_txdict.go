@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"sync"
 	"time"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
@@ -22,6 +23,7 @@ type TxDictConverter struct {
 	richClient walletinterface.RichClientOperator
 	tokenCache map[types.Address]*richtypes.Token
 	decoder    *decoder.ContractDecoder
+	mutex      *sync.Mutex
 }
 
 // NewTxDictConverter creates a TxDictConverter instance.
@@ -35,6 +37,7 @@ func NewTxDictConverter(richClient walletinterface.RichClientOperator) (*TxDictC
 		richClient: richClient,
 		tokenCache: make(map[types.Address]*richtypes.Token),
 		decoder:    contractDecoder,
+		mutex:      new(sync.Mutex),
 	}, nil
 }
 
@@ -268,18 +271,18 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 
 // getTokenByIdentifier ...
 func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAddress types.Address) *richtypes.Token {
+
 	if _, ok := tc.tokenCache[contractAddress]; !ok {
 
 		concrete, err := tc.decoder.GetTransferEventMatchedConcrete(log)
-		if err != nil {
-			tc.tokenCache[contractAddress] = nil
-			return nil
-		}
 
-		if concrete == nil {
+		tc.mutex.Lock()
+		if err != nil || concrete == nil {
 			tc.tokenCache[contractAddress] = nil
+			tc.mutex.Unlock()
 			return nil
 		}
+		tc.mutex.Unlock()
 
 		realContract := sdk.Contract{ABI: concrete.Contract.ABI, Client: tc.richClient.GetClient(), Address: &contractAddress}
 		var (
@@ -316,6 +319,7 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 			// }
 		}
 
+		tc.mutex.Lock()
 		tc.tokenCache[contractAddress] = &richtypes.Token{
 			TokenName:    string(name),
 			TokenSymbol:  string(symbol),
@@ -323,6 +327,7 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 			// Address:      &contractAddress,
 			// TokenType:    concrete.ContractType,
 		}
+		tc.mutex.Unlock()
 	}
 
 	return tc.tokenCache[contractAddress]

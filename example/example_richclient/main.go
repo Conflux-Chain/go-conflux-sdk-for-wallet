@@ -93,7 +93,7 @@ func testGetTransactionsFromPool() {
 
 func testGetTransactionsByEpoch() {
 	start := time.Now()
-	epochNum := big.NewInt(394508)
+	epochNum := big.NewInt(7906525)
 
 	txdicts, err := rc.GetTxDictsByEpoch(types.NewEpochNumber(epochNum))
 	if err != nil {
