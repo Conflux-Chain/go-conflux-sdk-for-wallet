@@ -319,9 +319,9 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 		return nil, types.WrapError(err, msg)
 	}
 
-	contract, err := rc.client.GetContract([]byte(cInfo.ABI), &to)
+	contract, err := rc.client.GetContract([]byte(cInfo.ABI), tokenIdentifier)
 	if err != nil {
-		msg := fmt.Sprintf("get contract by ABI {%+v}, to {%+v} error", cInfo.ABI, to)
+		msg := fmt.Sprintf("get contract by ABI {%+v}, tokenIdentifier {%+v} error", cInfo.ABI, tokenIdentifier)
 		return nil, types.WrapError(err, msg)
 	}
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
+	richconstants "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/decoder"
 	walletinterface "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/interface"
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
@@ -221,6 +222,11 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 
 	// sn := uint64(0)
 	for _, log := range logs {
+
+		// if to address is fc contract address, then only decode 1 log
+		if *receipt.To == richconstants.TethysFcV1Address && log.Topics[0] == richconstants.Erc777SentEventSign {
+			continue
+		}
 
 		// fmt.Println("start decode log")
 		eventParams, err := tc.decoder.DecodeEvent(&log)
