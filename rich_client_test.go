@@ -15,7 +15,7 @@ func TestGet(t *testing.T) {
 		Age  uint   `json:"age"`
 	}
 
-	expect := richtypes.Response{
+	expect := richtypes.ErrorResponse{
 		Code:    0,
 		Message: "good",
 		Result: student{
@@ -31,7 +31,7 @@ func TestGet(t *testing.T) {
 	var stu student
 	s := scanServer{
 		Scheme:        "http",
-		Address:        "test",
+		Address:       "test",
 		HTTPRequester: &httpRequster,
 	}
 
