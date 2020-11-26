@@ -579,7 +579,8 @@ func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache
 
 				cacheVal := cache[*_tx.BlockHash]
 
-				txDict, err := tc.ConvertByTransaction(&_tx, cacheVal.revertRate, cacheVal.block.Timestamp)
+				blockTimeInU64 := hexutil.Uint64(cacheVal.block.Timestamp.ToInt().Uint64())
+				txDict, err := tc.ConvertByTransaction(&_tx, cacheVal.revertRate, &blockTimeInU64)
 
 				mutex.Lock()
 				defer mutex.Unlock()

@@ -100,7 +100,7 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	// fmt.Println("create txdict done")
 
 	// no log will produced when transaction to is normal account or nil, so return
-	toType := tx.To.GetAddressType()
+	toType, _ := tx.To.GetAddressType()
 	if toType == types.NormalAddress || toType == types.InvalidAddress {
 		return txDict, nil
 	}
@@ -171,7 +171,8 @@ func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.F
 			msg := fmt.Sprintf("get block by hash %v error", tx.BlockHash)
 			return nil, types.WrapError(err, msg)
 		}
-		blockTime = block.Timestamp
+		blockTimeInU64 := hexutil.Uint64(block.Timestamp.ToInt().Uint64())
+		blockTime = &blockTimeInU64
 		// fmt.Println("get block by hash done")
 	}
 	if blockTime != nil {
