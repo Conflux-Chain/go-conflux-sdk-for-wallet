@@ -53,9 +53,9 @@ const (
 
 // Contract describe response contract information of scan rest api request
 type Contract struct {
-	Token     `json:"token"`
-	ABI       string `json:"abi"`
-	TokenIcon string `json:"tokenIcon"`
+	Token
+	ABI string `json:"abi"`
+
 	// TypeCode      uint   `json:"typeCode"`
 	// ContractName  string `json:"name"`
 

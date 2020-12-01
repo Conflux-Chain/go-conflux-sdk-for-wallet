@@ -15,16 +15,19 @@ type Token struct {
 	TokenName    string `json:"name"`
 	TokenSymbol  string `json:"symbol"`
 	TokenDecimal uint64 `json:"decimals"`
-	// Address      *types.Address `json:"address,omitempty"`
-	// TokenType    ContractType   `json:"token_type,omitempty"`
+	TokenIcon    string `json:"icon,omitempty"`
+	// Granularity   uint64       `json:"granularity,omitempty"`
+	// IsERC721      bool         `json:"isERC721"`
+	// TotalSupply   *hexutil.Big `json:"totalSupply,omitempty"`
+	// HolderCount   uint64       `json:"holderCount,omitempty"`
+	// TransferCount uint64       `json:"transferCount,omitempty"`
+	// SentCount     uint64       `json:"sentCount,omitempty"`
+	// Icon          string       `json:"icon,omitempty"`
 }
 
 // TokenWithBalance describes token with balace information
 type TokenWithBalance struct {
-	Token `json:"token"`
-	// TokenName    string `json:"tokenName"`
-	// TokenSymbol  string `json:"tokenSymbol"`
-	// TokenDecimal int    `json:"tokenDecimal"`
+	Token
 	Balance string `json:"balance"`
 	Address string `json:"address"`
 }
@@ -36,15 +39,16 @@ type TokenWithBlanceList struct {
 
 // TokenTransferEvent describes token transfer event information
 type TokenTransferEvent struct {
-	Token           `json:"token"`
-	ContractAddress types.Address `json:"address,omitempty"`
-	TransactionHash types.Hash    `json:"transactionHash"`
-	From            types.Address `json:"from"`
-	To              types.Address `json:"to"`
-	Value           string        `json:"value"`
-	Timestamp       JSONTime      `json:"timestamp"`
-	BlockHash       types.Hash    `json:"blockHash"`
-	RevertRate      *big.Float    `json:"revertRate"`
+	Token               `json:"token"`
+	ContractAddress     types.Address `json:"address,omitempty"`
+	TransactionHash     types.Hash    `json:"transactionHash"`
+	TransactionLogIndex uint          `json:"transactionLogIndex"`
+	From                types.Address `json:"from"`
+	To                  types.Address `json:"to"`
+	Value               string        `json:"value"`
+	Timestamp           JSONTime      `json:"timestamp"`
+	BlockHash           types.Hash    `json:"blockHash"`
+	RevertRate          *big.Float    `json:"revertRate"`
 	// Status          uint64        `json:"status"`
 }
 

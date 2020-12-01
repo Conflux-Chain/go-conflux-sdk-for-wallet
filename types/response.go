@@ -4,8 +4,8 @@
 
 package richtypes
 
-// Response represents response of http request from scan service
-type Response struct {
+// ErrorResponse represents response of http request from scan service
+type ErrorResponse struct {
 	Code    uint64      `json:"code"`    // 	"code"
 	Message string      `json:"message"` // "message"
 	Result  interface{} `json:"result"`  // "result"

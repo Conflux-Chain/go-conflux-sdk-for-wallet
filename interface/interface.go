@@ -12,7 +12,7 @@ type RichClientOperator interface {
 	GetClient() sdk.ClientOperator
 	GetAccountTokenTransfers(address types.Address, tokenIdentifier *types.Address, pageNumber, pageSize uint) (*richtypes.TokenTransferEventList, error)
 	CreateSendTokenTransaction(from types.Address, to types.Address, amount *hexutil.Big, tokenIdentifier *types.Address) (*types.UnsignedTransaction, error)
-	GetContractInfo(tokenIdentifier types.Address, needABI bool) (*richtypes.Contract, error)
+	GetContractInfo(contractAddress types.Address, needABI, needIcon bool) (*richtypes.Contract, error)
 	GetAccountTokens(account types.Address) (*richtypes.TokenWithBlanceList, error)
 	GetTransactionsFromPool() (*[]types.Transaction, error)
 }

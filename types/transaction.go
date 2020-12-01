@@ -12,7 +12,6 @@ import (
 // Transaction represents transction information response from scan service
 type Transaction struct {
 	Hash             types.Hash    `json:"hash"`
-	Nonce            uint64        `json:"nonce"`
 	BlockHash        types.Hash    `json:"blockHash,omitempty"`
 	TransactionIndex uint64        `json:"transactionIndex,omitempty"`
 	From             types.Address `json:"from"`
@@ -21,9 +20,16 @@ type Transaction struct {
 	GasPrice         string        `json:"gasPrice"`
 	Gas              string        `json:"gas"`
 	ContractCreated  types.Address `json:"contractCreated,omitempty"`
-	Data             string        `json:"data,omitempty"`
 	Status           uint64        `json:"status,omitempty"`
 	Timestamp        JSONTime      `json:"timestamp"`
+	EpochHeight      uint64        `json:"epochHeight"`
+	EpochNumber      uint64        `json:"epochNumber"`
+	SyncTimestamp    uint64        `json:"syncTimestamp"`
+	Risk             float64       `json:"risk"`
+	GasFee           string        `json:"gasFee"`
+	GasUsed          string        `json:"gasUsed"`
+	// Data             string        `json:"data,omitempty"`
+	// Nonce            *big.Int      `json:"nonce"`
 }
 
 // TransactionList represents a list of transaction

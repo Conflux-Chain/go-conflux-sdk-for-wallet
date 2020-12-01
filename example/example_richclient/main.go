@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/big"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -93,7 +92,9 @@ func testGetTransactionsFromPool() {
 
 func testGetTransactionsByEpoch() {
 	start := time.Now()
-	epochNum := big.NewInt(7906525)
+	// epochNum := big.NewInt(7906525)
+
+	epochNum, err := rc.GetClient().GetEpochNumber()
 
 	txdicts, err := rc.GetTxDictsByEpoch(types.NewEpochNumber(epochNum))
 	if err != nil {
@@ -112,7 +113,7 @@ func testGetTxDictByTxHash() {
 }
 
 func testGetContractInfo() {
-	tokenInfo, err := rc.GetContractInfo(config.ERC20Address, true)
+	tokenInfo, err := rc.GetContractInfo(config.ERC20Address, true, true)
 	if err != nil {
 		panic(err)
 	}
