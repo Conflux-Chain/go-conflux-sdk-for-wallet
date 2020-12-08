@@ -385,13 +385,15 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, needIcon bool) (*richtypes.Contract, error) {
 	params := make(map[string]interface{})
 
-	params["fields"] = ""
+	fields := []string{}
 	if needIcon {
-		params["fields"] = "icon"
+		fields = append(fields, "icon")
 	}
 	if needABI {
-		params["fields"] = params["fields"].(string) + ",abi"
+		fields = append(fields, "abi")
 	}
+
+	params["fields"] = strings.Join(fields, ",")
 
 	var contractQueryFullPath = fmt.Sprintf("%v/%v", contractQueryBasePath, contractAddress)
 	var contract richtypes.Contract
