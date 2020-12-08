@@ -22,11 +22,11 @@ func init() {
 
 func main() {
 	fmt.Println("\n=======start rich client example=======\n")
-	testGetAccountTokenTransfers()
-	testGetAccountTokens()
-	testCreateSendTokenTransaction()
-	testGetTransactionsByEpoch()
-	testGetTxDictByTxHash()
+	// testGetAccountTokenTransfers()
+	// testGetAccountTokens()
+	// testCreateSendTokenTransaction()
+	// testGetTransactionsByEpoch()
+	// testGetTxDictByTxHash()
 	testGetContractInfo()
 	testGetTransactionsFromPool()
 	fmt.Println("\n=======rich client example done=======\n")
@@ -113,7 +113,18 @@ func testGetTxDictByTxHash() {
 }
 
 func testGetContractInfo() {
+	config.ERC20Address = types.Address("0x8e2f2e68eb75bb8b18caafe9607242d4748f8d98")
 	tokenInfo, err := rc.GetContractInfo(config.ERC20Address, true, true)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("- get token info of %s done\n%v\n\n", config.ERC20Address, context.JsonFmt(tokenInfo))
+	tokenInfo, err = rc.GetContractInfo(config.ERC20Address, true, false)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("- get token info of %s done\n%v\n\n", config.ERC20Address, context.JsonFmt(tokenInfo))
+	tokenInfo, err = rc.GetContractInfo(config.ERC20Address, false, true)
 	if err != nil {
 		panic(err)
 	}
