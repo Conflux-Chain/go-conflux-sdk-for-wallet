@@ -22,11 +22,11 @@ func init() {
 
 func main() {
 	fmt.Println("\n=======start rich client example=======\n")
-	// testGetAccountTokenTransfers()
-	// testGetAccountTokens()
-	// testCreateSendTokenTransaction()
-	// testGetTransactionsByEpoch()
-	// testGetTxDictByTxHash()
+	testGetAccountTokenTransfers()
+	testGetAccountTokens()
+	testCreateSendTokenTransaction()
+	testGetTransactionsByEpoch()
+	testGetTxDictByTxHash()
 	testGetContractInfo()
 	testGetTransactionsFromPool()
 	fmt.Println("\n=======rich client example done=======\n")
