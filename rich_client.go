@@ -207,7 +207,7 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdentifier *types.Address, pageNumber, pageSize uint) (*richtypes.TokenTransferEventList, error) {
 	params := make(map[string]interface{})
 	params["accountAddress"] = address
-	params["skip"] = pageNumber
+	params["skip"] = (pageNumber - 1) * pageSize
 	params["limit"] = pageSize
 	params["txType"] = "all"
 
