@@ -100,6 +100,10 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	// fmt.Println("create txdict done")
 
 	// no log will produced when transaction to is normal account or nil, so return
+	if tx.To == nil {
+		return txDict, nil
+	}
+
 	toType, _ := tx.To.GetAddressType()
 	if toType == types.NormalAddress || toType == types.InvalidAddress {
 		return txDict, nil
