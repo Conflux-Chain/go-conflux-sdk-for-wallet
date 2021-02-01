@@ -7,6 +7,7 @@ package richtypes
 import (
 	"math/big"
 
+	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types/cfxaddress"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 )
 
@@ -56,4 +57,18 @@ type TokenTransferEvent struct {
 type TokenTransferEventList struct {
 	Total uint64               `json:"total"`
 	List  []TokenTransferEvent `json:"list"`
+}
+
+func (tbl *TokenWithBlanceList) FormatAddress() {
+	for i := range tbl.List {
+		tbl.List[i].Address = cfxaddress.FormatAddressStrToHex(tbl.List[i].Address)
+	}
+}
+
+func (ttl *TokenTransferEventList) FormatAddress() {
+	for i := range ttl.List {
+		ttl.List[i].ContractAddress = cfxaddress.FormatAddressToHex(ttl.List[i].ContractAddress)
+		ttl.List[i].From = cfxaddress.FormatAddressToHex(ttl.List[i].From)
+		ttl.List[i].To = cfxaddress.FormatAddressToHex(ttl.List[i].To)
+	}
 }
