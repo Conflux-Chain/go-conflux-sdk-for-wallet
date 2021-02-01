@@ -28,7 +28,7 @@ func init() {
 
 func main() {
 	fmt.Println("=======strat txdict converter example=======")
-	testConvertByTransaction(types.Hash("0xe15dfc92c16fbd80892621dcaf01eb548127b8e6a6e62fcef8fc2c3b8cc23924"))
+	// testConvertByTransaction(types.Hash("0xe15dfc92c16fbd80892621dcaf01eb548127b8e6a6e62fcef8fc2c3b8cc23924"))
 	testConvertByTransaction(config.NormalTransactions[0])
 	testConvertByTransaction(config.ERC20Transactions[0])
 

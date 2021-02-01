@@ -176,7 +176,7 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 	var rsp richtypes.ErrorResponse
 	err = json.Unmarshal(body, &rsp)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal '%v' to richtypes.ErrorResponse, error:%v", string(body), err.Error())
 	}
 	// fmt.Printf("unmarshaled body: %+v\n\n", rsp)
 
@@ -185,16 +185,10 @@ func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaled
 		return errors.New(msg)
 	}
 
-	// rstBytes, err := json.Marshal(rsp.Result)
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Printf("marshaled result: %+v\n\n", string(rstBytes))
-
 	// unmarshl to result
 	err = json.Unmarshal(body, unmarshaledResult)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal '%v' to unmarshaledResult, error:%v", string(body), err.Error())
 	}
 	// fmt.Printf("unmarshaled result: %+v\n\n", unmarshaledResult)
 	return nil
@@ -209,7 +203,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	params["accountAddress"] = address
 	params["skip"] = (pageNumber - 1) * pageSize
 	params["limit"] = pageSize
-	params["txType"] = "all"
+	params["transferType"] = "ERC20"
 
 	var tteList *richtypes.TokenTransferEventList
 	blockhashes := []types.Hash{}
@@ -222,6 +216,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", tokenTransferListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
+		tts.FormatAddress()
 		tteList = &tts
 		// fmt.Printf("%+v", tteList)
 
@@ -277,7 +272,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", txListPath, params)
 			return nil, types.WrapError(err, msg)
 		}
-
+		txs.FormatAddress()
 		tteList = txs.ToTokenTransferEventList()
 
 		// set blockhashes
@@ -421,6 +416,9 @@ func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenW
 		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", accountTokensPath, params)
 		return nil, types.WrapError(err, msg)
 	}
+
+	tbs.FormatAddress()
+
 	return &tbs, nil
 }
 

@@ -1,8 +1,8 @@
-NodeURL = "http://test.confluxrpc.org"
+NodeURL = "https://testnet-rpc.conflux-chain.org.cn"
 CfxScanBackendSchema = "https"
-CfxScanBackendAddress = "testnet.confluxscan.io"
+CfxScanBackendAddress = "testnet-scantest.confluxnetwork.org"
 ContractManagerSchema = "https"
-ContractManagerAddress = "testnet.confluxscan.io"
+ContractManagerAddress = "testnet-scantest.confluxnetwork.org"
 ERC20Address = "0x8773c393ddb04e44fae382273e15722782d63ac2"
 ERC777Address = "0x876e430732aedc5dcae451262e59157b088ebb24"
 NormalTransactions = ["0x63020dad5deffb4b7c8e8d106502baeecdefbebe980c2886844b6eb07bdefd65"]
