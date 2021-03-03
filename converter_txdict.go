@@ -1,7 +1,6 @@
 package walletsdk
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -15,16 +14,19 @@ import (
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/pkg/errors"
 )
 
 // TxDictConverter contains methods for convert other types to TxDict.
 type TxDictConverter struct {
 	richClient walletinterface.RichClientOperator
-	tokenCache map[types.Address]*richtypes.Token
+	tokenCache map[string]*richtypes.Token
 	decoder    *decoder.ContractDecoder
 	mutex      *sync.Mutex
+	networkID  uint32
 }
 
 // NewTxDictConverter creates a TxDictConverter instance.
@@ -34,11 +36,17 @@ func NewTxDictConverter(richClient walletinterface.RichClientOperator) (*TxDictC
 		return nil, err
 	}
 
+	networkID, err := richClient.GetClient().GetNetworkID()
+	if err != nil {
+		return nil, err
+	}
+
 	return &TxDictConverter{
 		richClient: richClient,
-		tokenCache: make(map[types.Address]*richtypes.Token),
+		tokenCache: make(map[string]*richtypes.Token),
 		decoder:    contractDecoder,
 		mutex:      new(sync.Mutex),
+		networkID:  networkID,
 	}, nil
 }
 
@@ -92,7 +100,7 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	if err != nil {
 		msg := fmt.Sprintf("creat tx_dict with txHash:%v, blockHash:%v, from:%v, to:%v, value:%v error",
 			tx.Hash, tx.BlockHash, tx.From, tx.To, tx.Value)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrap(err, msg)
 	}
 
 	sn := uint64(0)
@@ -104,8 +112,8 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 		return txDict, nil
 	}
 
-	toType, _ := tx.To.GetAddressType()
-	if toType == types.NormalAddress || toType == types.InvalidAddress {
+	toType := tx.To.GetAddressType()
+	if toType == cfxaddress.AddressTypeUser {
 		return txDict, nil
 	}
 
@@ -114,8 +122,7 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	for i := 0; i < 5; i++ {
 		receipit, err = tc.richClient.GetClient().GetTransactionReceipt(tx.Hash)
 		if err != nil {
-			msg := fmt.Sprintf("get transaction receipt by hash %v error", tx.Hash)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "get transaction receipt by hash %v error", tx.Hash)
 		}
 		if receipit != nil {
 			break
@@ -132,8 +139,7 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	err = tc.fillTxDictByTxReceipt(txDict, receipit, &sn)
 	// fmt.Printf("after fill by receipt: %+v\n\n", txDict)
 	if err != nil {
-		msg := fmt.Sprintf("fill tx_dict by tx receipt %v error", receipit)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, "fill tx_dict by tx receipt %v error", receipit)
 	}
 	return txDict, nil
 }
@@ -160,8 +166,7 @@ func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.F
 		var err error
 		revertRate, err = client.GetBlockConfirmationRisk(*tx.BlockHash)
 		if err != nil {
-			msg := fmt.Sprintf("get block revert rate by hash %v error", tx.BlockHash)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "get block revert rate by hash %v error", tx.BlockHash)
 		}
 		// fmt.Println("get block revert rate by hash done")
 	}
@@ -172,8 +177,7 @@ func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.F
 		var err error
 		block, err := client.GetBlockByHash(*tx.BlockHash)
 		if err != nil {
-			msg := fmt.Sprintf("get block by hash %v error", tx.BlockHash)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "get block by hash %v error", tx.BlockHash)
 		}
 		blockTimeInU64 := hexutil.Uint64(block.Timestamp.ToInt().Uint64())
 		blockTime = &blockTimeInU64
@@ -229,15 +233,14 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 	for _, log := range logs {
 
 		// if to address is fc contract address, then only decode 1 log
-		if *receipt.To == richconstants.TethysFcV1Address && log.Topics[0] == richconstants.Erc777SentEventSign {
+		if reflect.DeepEqual(*receipt.To, richconstants.TethysFcV1Address) && log.Topics[0] == richconstants.Erc777SentEventSign {
 			continue
 		}
 
 		// fmt.Println("start decode log")
 		eventParams, err := tc.decoder.DecodeEvent(&log)
 		if err != nil {
-			msg := fmt.Sprintf("decode log %+v error", log)
-			return types.WrapError(err, msg)
+			return errors.Wrapf(err, "decode log %+v error", log)
 		}
 
 		// fill fields to input and output of tx_dict
@@ -252,13 +255,13 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			}
 
 			paramsV := reflect.ValueOf(eventParams).Elem()
-			from := types.NewAddress(paramsV.FieldByName("From").Interface().(common.Address).String())
-			to := types.NewAddress(paramsV.FieldByName("To").Interface().(common.Address).String())
+			from := cfxaddress.MustNewFromCommon(paramsV.FieldByName("From").Interface().(common.Address), tc.networkID)
+			to := cfxaddress.MustNewFromCommon(paramsV.FieldByName("To").Interface().(common.Address), tc.networkID)
 
 			//fill to txdict inputs and outputs
 			input := richtypes.TxUnit{
 				Value:           amount,
-				Address:         from,
+				Address:         &from,
 				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: receipt.To,
@@ -266,7 +269,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			}
 			output := richtypes.TxUnit{
 				Value:           amount,
-				Address:         to,
+				Address:         &to,
 				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: receipt.To,
@@ -281,15 +284,15 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 }
 
 // getTokenByIdentifier ...
-func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAddress types.Address) *richtypes.Token {
+func (tc *TxDictConverter) getTokenByIdentifier(log *types.Log, contractAddress types.Address) *richtypes.Token {
 
-	if _, ok := tc.tokenCache[contractAddress]; !ok {
+	if _, ok := tc.tokenCache[contractAddress.String()]; !ok {
 
 		concrete, err := tc.decoder.GetTransferEventMatchedConcrete(log)
 
 		tc.mutex.Lock()
 		if err != nil || concrete == nil {
-			tc.tokenCache[contractAddress] = nil
+			tc.tokenCache[contractAddress.String()] = nil
 			tc.mutex.Unlock()
 			return nil
 		}
@@ -331,7 +334,7 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 		}
 
 		tc.mutex.Lock()
-		tc.tokenCache[contractAddress] = &richtypes.Token{
+		tc.tokenCache[contractAddress.String()] = &richtypes.Token{
 			TokenName:    string(name),
 			TokenSymbol:  string(symbol),
 			TokenDecimal: uint64(decimals),
@@ -341,7 +344,7 @@ func (tc *TxDictConverter) getTokenByIdentifier(log *types.LogEntry, contractAdd
 		tc.mutex.Unlock()
 	}
 
-	return tc.tokenCache[contractAddress]
+	return tc.tokenCache[contractAddress.String()]
 }
 
 // ConvertByUnsignedTransaction converts types.UnsignedTransaction to TxDictBase.
@@ -355,10 +358,10 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 		txDictBase.Extra.GasPrice = tx.GasPrice.ToInt()
 	}
 
-	value := big.Int(*tx.Value)
+	value := tx.Value.ToInt()
 	txDictBase.Inputs = []richtypes.TxUnit{
 		{
-			Value:        &value,
+			Value:        value,
 			Address:      tx.From,
 			Sn:           0,
 			TokenCode:    constants.CFXSymbol,
@@ -368,7 +371,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 
 	txDictBase.Outputs = []richtypes.TxUnit{
 		{
-			Value:        &value,
+			Value:        value,
 			Address:      tx.To,
 			Sn:           0,
 			TokenCode:    constants.CFXSymbol,
@@ -398,7 +401,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 	// fmt.Printf("get amount done %+v,err:%v\n\n", amount, err)
 	if err == nil {
 		paramsV := reflect.ValueOf(funcParams).Elem()
-		to := types.NewAddress(paramsV.FieldByName("To").Interface().(common.Address).String())
+		to := cfxaddress.MustNewFromCommon(paramsV.FieldByName("To").Interface().(common.Address), tc.networkID)
 
 		txDictBase.Inputs = append(txDictBase.Inputs, richtypes.TxUnit{
 
@@ -410,7 +413,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 		)
 		txDictBase.Outputs = append(txDictBase.Outputs, richtypes.TxUnit{
 			Value:           amount,
-			Address:         to,
+			Address:         &to,
 			Sn:              1,
 			TokenIdentifier: tx.To,
 		})

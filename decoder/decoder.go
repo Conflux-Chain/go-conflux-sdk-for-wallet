@@ -9,7 +9,9 @@ import (
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
 	types "github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/pkg/errors"
 )
 
 // ContractDecoder for decode event
@@ -44,10 +46,10 @@ func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemCon
 		// get contract
 
 		var client *sdk.Client
-		contract, err := client.GetContract([]byte(abiJSON), types.NewAddress(constants.ZeroAddress.String()))
+		contractAddress := cfxaddress.MustNewFromCommon(constants.ZeroAddress)
+		contract, err := client.GetContract([]byte(abiJSON), &contractAddress)
 		if err != nil {
-			msg := fmt.Sprintf("unmarshal json {%+v} to ABI error", abiJSON)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "unmarshal json {%+v} to ABI error", abiJSON)
 		}
 
 		elemConcretes := []richtypes.ContractElemConcrete{}
@@ -100,7 +102,7 @@ func createContractElemIdToConcreteDic() (map[string][]richtypes.ContractElemCon
 }
 
 // GetTransferEventMatchedConcrete ...
-func (cd *ContractDecoder) GetTransferEventMatchedConcrete(log *types.LogEntry) (*richtypes.ContractElemConcrete, error) {
+func (cd *ContractDecoder) GetTransferEventMatchedConcrete(log *types.Log) (*richtypes.ContractElemConcrete, error) {
 	if len(log.Topics) == 0 {
 		return nil, nil
 	}
@@ -156,7 +158,7 @@ func (cd *ContractDecoder) GetTransferEventMatchedConcrete(log *types.LogEntry) 
 }
 
 // DecodeEvent finds the unique matched event concrete with the log and decodes the log into instance of event params struct
-func (cd *ContractDecoder) DecodeEvent(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
+func (cd *ContractDecoder) DecodeEvent(log *types.Log) (eventParmsPtr interface{}, err error) {
 	concrete, err := cd.GetTransferEventMatchedConcrete(log)
 	if err != nil {
 		return nil, err

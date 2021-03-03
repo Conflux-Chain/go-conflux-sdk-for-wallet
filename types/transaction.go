@@ -5,7 +5,6 @@
 package richtypes
 
 import (
-	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types/cfxaddress"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 )
@@ -72,12 +71,4 @@ func (txs *TransactionList) ToTokenTransferEventList() *TokenTransferEventList {
 		tteList.List[i] = *v.ToTokenTransferEvent()
 	}
 	return &tteList
-}
-
-func (txs *TransactionList) FormatAddress() {
-	for i := range txs.List {
-		txs.List[i].From = cfxaddress.FormatAddressToHex(txs.List[i].From)
-		txs.List[i].To = cfxaddress.FormatAddressToHex(txs.List[i].To)
-		txs.List[i].ContractCreated = cfxaddress.FormatAddressToHex(txs.List[i].ContractCreated)
-	}
 }

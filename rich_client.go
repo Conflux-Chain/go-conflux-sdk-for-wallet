@@ -6,7 +6,6 @@ package walletsdk
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -20,8 +19,8 @@ import (
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/pkg/errors"
 )
 
 // RichClient contains client, cfx-scan-backend server and contract-manager server
@@ -213,17 +212,16 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		params["address"] = *tokenIdentifier
 		err := rc.cfxScanBackend.Get(tokenTransferListPath, params, &tts)
 		if err != nil {
-			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", tokenTransferListPath, params)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "get result of CfxScanBackend server and path {%+v}, params: {%+v} error", tokenTransferListPath, params)
 		}
-		tts.FormatAddress()
+		// tts.FormatAddress()
 		tteList = &tts
 		// fmt.Printf("%+v", tteList)
 
 		// batch get blockhash through getTransactionByHash
 		blockhashes = make([]types.Hash, 0, len(tteList.List))
 		txhashes := make([]types.Hash, len(tteList.List))
-		tokenAddressToTokenInfoMap := make(map[types.Address]*richtypes.Token)
+		tokenAddressToTokenInfoMap := make(map[string]*richtypes.Token)
 
 		for i := range tteList.List {
 			txhashes[i] = tteList.List[i].TransactionHash
@@ -232,8 +230,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		// set block hash
 		txhashToTxMap, err := rc.client.BatchGetTxByHashes(txhashes)
 		if err != nil {
-			msg := fmt.Sprintf("batch get txs by tx hashes %v error", txhashes)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "batch get txs by tx hashes %v error", txhashes)
 		}
 
 		for i := range tteList.List {
@@ -253,15 +250,14 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		// set token info
 		for i := range tteList.List {
 			tokenAddress := tteList.List[i].ContractAddress
-			if _, ok := tokenAddressToTokenInfoMap[tokenAddress]; !ok {
+			if _, ok := tokenAddressToTokenInfoMap[tokenAddress.String()]; !ok {
 				contract, err := rc.GetContractInfo(tokenAddress, true, false)
 				if err != nil {
-					msg := fmt.Sprintf("get token info of %v error", tokenAddress)
-					return nil, types.WrapError(err, msg)
+					return nil, errors.Wrapf(err, "get token info of %v error", tokenAddress)
 				}
-				tokenAddressToTokenInfoMap[tokenAddress] = &contract.Token
+				tokenAddressToTokenInfoMap[tokenAddress.String()] = &contract.Token
 			}
-			tteList.List[i].Token = *tokenAddressToTokenInfoMap[tokenAddress]
+			tteList.List[i].Token = *tokenAddressToTokenInfoMap[tokenAddress.String()]
 		}
 
 	} else {
@@ -269,10 +265,9 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		var txs richtypes.TransactionList
 		err := rc.cfxScanBackend.Get(txListPath, params, &txs)
 		if err != nil {
-			msg := fmt.Sprintf("get result of CfxScanBackend server and path {%+v}, params: {%+v} error", txListPath, params)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "get result of CfxScanBackend server and path {%+v}, params: {%+v} error", txListPath, params)
 		}
-		txs.FormatAddress()
+		// txs.FormatAddress()
 		tteList = txs.ToTokenTransferEventList()
 
 		// set blockhashes
@@ -286,8 +281,7 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 	blkhashToRateMap, err := rc.client.BatchGetBlockConfirmationRisk(blockhashes)
 	// fmt.Printf("blkhashToRateMap: %+v\n\n", blkhashToRateMap)
 	if err != nil {
-		msg := fmt.Sprintf("batch get block revert of blockhashes %v error", blockhashes)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, "batch get block revert of blockhashes %v error", blockhashes)
 	}
 	for i, tte := range tteList.List {
 		rate := blkhashToRateMap[tte.BlockHash]
@@ -303,37 +297,33 @@ func (rc *RichClient) CreateSendTokenTransaction(from types.Address, to types.Ad
 	if tokenIdentifier == nil {
 		tx, err := rc.client.CreateUnsignedTransaction(from, to, amount, nil)
 		if err != nil {
-			msg := fmt.Sprintf("Create Unsigned Transaction by from {%+v}, to {%+v}, amount {%+v} error", from, to, amount)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, "Create Unsigned Transaction by from {%+v}, to {%+v}, amount {%+v} error", from, to, amount)
 		}
-		return tx, nil
+		return &tx, nil
 	}
 
 	cInfo, err := rc.GetContractInfo(*tokenIdentifier, true, false)
 	if err != nil {
 		// msg := fmt.Sprintf("get and unmarsal data from contract manager server with path {%+v}, paramas {%+v} error", contractQueryPath, params)
-		msg := fmt.Sprintf("get contract info of %v error", tokenIdentifier)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, "get contract info of %v error", tokenIdentifier)
 	}
 
 	contract, err := rc.client.GetContract([]byte(cInfo.ABI), tokenIdentifier)
 	if err != nil {
-		msg := fmt.Sprintf("get contract by ABI {%+v}, tokenIdentifier {%+v} error", cInfo.ABI, tokenIdentifier)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, "get contract by ABI {%+v}, tokenIdentifier {%+v} error", cInfo.ABI, tokenIdentifier)
 	}
 
 	data, err := rc.getDataForTransToken(cInfo.GetContractTypeByABI(), contract, to, amount)
 	if err != nil {
-		msg := fmt.Sprintf("get data for transfer token method error, contract type {%+v} ", cInfo.GetContractTypeByABI())
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, "get data for transfer token method error, contract type {%+v} ", cInfo.GetContractTypeByABI())
 	}
 
 	tx, err := rc.client.CreateUnsignedTransaction(from, *tokenIdentifier, nil, data)
 	if err != nil {
 		msg := fmt.Sprintf("create transaction with params {from: %+v, to: %+v, data: %+v} error ", from, to, data)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, msg)
 	}
-	return tx, nil
+	return &tx, nil
 }
 
 func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, contract sdk.Contractor, to types.Address, amount *hexutil.Big) ([]byte, error) {
@@ -342,10 +332,10 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 
 	// erc20 or fanscoin method signature are transfer(address,uint256)
 	if contractType == richtypes.ERC20 || contractType == richtypes.FANSCOIN {
-		data, err = contract.GetData("transfer", common.HexToAddress(string(to)), amount.ToInt())
+		data, err = contract.GetData("transfer", to.MustGetCommonAddress(), amount.ToInt())
 		if err != nil {
 			msg := fmt.Sprintf("get data of contract {%+v}, method {%+v}, params {to: %+v, amount: %+v} error ", contract, "transfer", to, amount)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, msg)
 		}
 		return data, nil
 	}
@@ -358,10 +348,10 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 
 	// erc777 method signature is send(address,uint256,bytes)
 	if contractType == richtypes.ERC777 {
-		data, err = contract.GetData("send", common.HexToAddress(string(to)), amount.ToInt(), []byte{})
+		data, err = contract.GetData("send", to.MustGetCommonAddress(), amount.ToInt(), []byte{})
 		if err != nil {
 			msg := fmt.Sprintf("get data of contract {%+v}, method {%+v}, params {to: %+v, amount: %+v} error ", contract, "send", to, amount)
-			return nil, types.WrapError(err, msg)
+			return nil, errors.Wrapf(err, msg)
 		}
 		return data, nil
 	}
@@ -395,7 +385,7 @@ func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, ne
 	err := rc.contractManager.Get(contractQueryFullPath, params, &contract)
 	if err != nil {
 		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", contractQueryFullPath, params)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, msg)
 	}
 
 	// get token info
@@ -414,7 +404,7 @@ func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenW
 	err := rc.cfxScanBackend.Get(accountTokensPath, params, &tbs)
 	if err != nil {
 		msg := fmt.Sprintf("get and unmarshal result of ContractManager server and path {%+v}, params: {%+v} error", accountTokensPath, params)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, msg)
 	}
 
 	tbs.FormatAddress()
@@ -430,7 +420,7 @@ func (rc *RichClient) GetTransactionsFromPool() (*[]types.Transaction, error) {
 
 	if err := rc.client.CallRPC(&txs, "getTransactionsFromPool"); err != nil {
 		msg := fmt.Sprintf("rpc getTransactionsFromPool error")
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, msg)
 	}
 
 	if txs == nil {
@@ -445,7 +435,7 @@ func (rc *RichClient) GetTxDictByTxHash(hash types.Hash) (*richtypes.TxDict, err
 	tx, err := rc.client.GetTransactionByHash(hash)
 	if err != nil {
 		msg := fmt.Sprintf("get transaction by hash %v error", hash)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, msg)
 	}
 
 	tc, err := NewTxDictConverter(rc)
@@ -466,7 +456,7 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 	blockhashes, err := client.GetBlocksByEpoch(epoch)
 	if err != nil {
 		msg := fmt.Sprintf("get blocks by epoch %v error", epoch)
-		return nil, types.WrapError(err, msg)
+		return nil, errors.Wrapf(err, msg)
 	}
 	//fmt.Printf("get block hashes by epoch done, passed time: %v\n", time.Now().Sub(start))
 
@@ -489,7 +479,7 @@ func (rc *RichClient) GetTxDictsByEpoch(epoch *types.Epoch) ([]richtypes.TxDict,
 func createBlockAndRevertrateCache(client sdk.ClientOperator, blockhashes []types.Hash) (map[types.Hash]*blockAndRevertrate, []error) {
 	// cache block and it's revertrate
 	cache := make(map[types.Hash]*blockAndRevertrate)
-	var errors []error
+	var errs []error
 
 	// blockhashes = []types.Hash{"0x28d5a5b1b8f6c83e274b7ba1f027d16215596f27ea5effb745994401d23f8a18"}
 	// concurrence get block and revertrate
@@ -505,10 +495,10 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockhashes []type
 			block, err := client.GetBlockByHash(bh)
 			if err != nil {
 				msg := fmt.Sprintf("get block by hash %v error", bh)
-				if errors == nil {
-					errors = make([]error, 0)
+				if errs == nil {
+					errs = make([]error, 0)
 				}
-				errors = append(errors, types.WrapError(err, msg))
+				errs = append(errs, errors.Wrapf(err, msg))
 			}
 			cache[bh].block = block
 		}(blockhash)
@@ -520,17 +510,17 @@ func createBlockAndRevertrateCache(client sdk.ClientOperator, blockhashes []type
 			revertRate, err := client.GetBlockConfirmationRisk(bh)
 			if err != nil {
 				msg := fmt.Sprintf("get block revert rate by hash %v error", bh)
-				if errors == nil {
-					errors = make([]error, 0)
+				if errs == nil {
+					errs = make([]error, 0)
 				}
-				errors = append(errors, types.WrapError(err, msg))
+				errs = append(errs, errors.Wrapf(err, msg))
 			}
 			cache[bh].revertRate = revertRate
 		}(blockhash)
 	}
 	wg.Wait()
 
-	return cache, errors
+	return cache, errs
 }
 
 func (rc *RichClient) createTxDictsByBlockhashes(blockhashes []types.Hash, cache map[types.Hash]*blockAndRevertrate) ([]richtypes.TxDict, []error) {

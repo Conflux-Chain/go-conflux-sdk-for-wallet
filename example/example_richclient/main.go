@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	richsdk "github.com/Conflux-Chain/go-conflux-sdk-for-wallet"
 	context "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/example/context"
 	exampletypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/example/context/types"
@@ -13,11 +14,13 @@ import (
 )
 
 var rc *richsdk.RichClient
+var client *sdk.Client
 var config *exampletypes.Config
 
 func init() {
 	config = context.Prepare()
 	rc = config.GetRichClient()
+	client = rc.GetClient().(*sdk.Client)
 }
 
 func main() {
@@ -41,7 +44,7 @@ func readConfig() {
 
 func testGetAccountTokenTransfers() {
 	start := time.Now()
-	from := types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302")
+	from := client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302")
 	token := config.ERC20Address
 	tteList, err := rc.GetAccountTokenTransfers(from, &token, 1, 50)
 	if err != nil {
@@ -60,13 +63,13 @@ func testGetAccountTokenTransfers() {
 }
 
 func testCreateSendTokenTransaction() {
-	tx, err := rc.CreateSendTokenTransaction(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), types.Address("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC20Address)
+	tx, err := rc.CreateSendTokenTransaction(client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), client.MustNewAddress("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC20Address)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("- create send erc20 token tx:%+v\n\n", context.JsonFmt(tx))
 
-	tx, err = rc.CreateSendTokenTransaction(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), types.Address("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC777Address)
+	tx, err = rc.CreateSendTokenTransaction(client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), client.MustNewAddress("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC777Address)
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +77,7 @@ func testCreateSendTokenTransaction() {
 }
 
 func testGetAccountTokens() {
-	ts, err := rc.GetAccountTokens(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"))
+	ts, err := rc.GetAccountTokens(client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"))
 	if err != nil {
 		panic(err)
 	}
@@ -113,7 +116,7 @@ func testGetTxDictByTxHash() {
 }
 
 func testGetContractInfo() {
-	config.ERC20Address = types.Address("0x8e2f2e68eb75bb8b18caafe9607242d4748f8d98")
+	// config.ERC20Address = config.ERC20Address
 	tokenInfo, err := rc.GetContractInfo(config.ERC20Address, true, true)
 	if err != nil {
 		panic(err)
