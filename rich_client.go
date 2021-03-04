@@ -250,14 +250,16 @@ func (rc *RichClient) GetAccountTokenTransfers(address types.Address, tokenIdent
 		// set token info
 		for i := range tteList.List {
 			tokenAddress := tteList.List[i].ContractAddress
-			if _, ok := tokenAddressToTokenInfoMap[tokenAddress.String()]; !ok {
-				contract, err := rc.GetContractInfo(tokenAddress, true, false)
-				if err != nil {
-					return nil, errors.Wrapf(err, "get token info of %v error", tokenAddress)
+			if tokenAddress != nil {
+				if _, ok := tokenAddressToTokenInfoMap[tokenAddress.String()]; !ok {
+					contract, err := rc.GetContractInfo(*tokenAddress, true, false)
+					if err != nil {
+						return nil, errors.Wrapf(err, "get token info of %v error", tokenAddress)
+					}
+					tokenAddressToTokenInfoMap[tokenAddress.String()] = &contract.Token
 				}
-				tokenAddressToTokenInfoMap[tokenAddress.String()] = &contract.Token
+				tteList.List[i].Token = *tokenAddressToTokenInfoMap[tokenAddress.String()]
 			}
-			tteList.List[i].Token = *tokenAddressToTokenInfoMap[tokenAddress.String()]
 		}
 
 	} else {
