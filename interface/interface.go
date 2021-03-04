@@ -24,5 +24,5 @@ type TokenReader interface {
 
 // EventDecoder represents interface for decoding event
 type EventDecoder interface {
-	Decode(log *types.LogEntry) (interface{}, error)
+	Decode(log *types.Log) (interface{}, error)
 }

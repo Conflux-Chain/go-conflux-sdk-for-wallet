@@ -3,6 +3,9 @@ package helper
 import (
 	"fmt"
 	"os"
+
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // IsFileExists checks if a file exists and is not a directory before we
@@ -31,4 +34,12 @@ func PanicIfErr(err error, msg string) {
 		fmt.Println()
 		panic(err)
 	}
+}
+
+func MustGetCommonAddressPtr(address *cfxaddress.Address) *common.Address {
+	if address == nil {
+		return nil
+	}
+	_addr := address.MustGetCommonAddress()
+	return &_addr
 }

@@ -7,8 +7,9 @@ package richtypes
 import (
 	"math/big"
 
-	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types/cfxaddress"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // Token describes token detail messages, such as erc20, erc777, fanscoin and so on.
@@ -41,15 +42,15 @@ type TokenWithBlanceList struct {
 // TokenTransferEvent describes token transfer event information
 type TokenTransferEvent struct {
 	Token               `json:"token"`
-	ContractAddress     types.Address `json:"address,omitempty"`
-	TransactionHash     types.Hash    `json:"transactionHash"`
-	TransactionLogIndex uint          `json:"transactionLogIndex"`
-	From                types.Address `json:"from"`
-	To                  types.Address `json:"to"`
-	Value               string        `json:"value"`
-	Timestamp           JSONTime      `json:"timestamp"`
-	BlockHash           types.Hash    `json:"blockHash"`
-	RevertRate          *big.Float    `json:"revertRate"`
+	ContractAddress     types.Address   `json:"address,omitempty"`
+	TransactionHash     types.Hash      `json:"transactionHash"`
+	TransactionLogIndex uint            `json:"transactionLogIndex"`
+	From                common.Address  `json:"from"`
+	To                  *common.Address `json:"to"`
+	Value               string          `json:"value"`
+	Timestamp           JSONTime        `json:"timestamp"`
+	BlockHash           types.Hash      `json:"blockHash"`
+	RevertRate          *big.Float      `json:"revertRate"`
 	// Status          uint64        `json:"status"`
 }
 
@@ -62,13 +63,5 @@ type TokenTransferEventList struct {
 func (tbl *TokenWithBlanceList) FormatAddress() {
 	for i := range tbl.List {
 		tbl.List[i].Address = cfxaddress.FormatAddressStrToHex(tbl.List[i].Address)
-	}
-}
-
-func (ttl *TokenTransferEventList) FormatAddress() {
-	for i := range ttl.List {
-		ttl.List[i].ContractAddress = cfxaddress.FormatAddressToHex(ttl.List[i].ContractAddress)
-		ttl.List[i].From = cfxaddress.FormatAddressToHex(ttl.List[i].From)
-		ttl.List[i].To = cfxaddress.FormatAddressToHex(ttl.List[i].To)
 	}
 }

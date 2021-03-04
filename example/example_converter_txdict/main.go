@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	walletsdk "github.com/Conflux-Chain/go-conflux-sdk-for-wallet"
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/example/context"
 	exampletypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/example/context/types"
@@ -13,11 +14,13 @@ import (
 
 var converter *walletsdk.TxDictConverter
 var richClient *walletsdk.RichClient
+var client *sdk.Client
 var config *exampletypes.Config
 
 func init() {
 	config = context.Prepare()
 	richClient = config.GetRichClient()
+	client = richClient.GetClient().(*sdk.Client)
 
 	var err error
 	converter, err = walletsdk.NewTxDictConverter(richClient)
@@ -53,7 +56,7 @@ func testConvertByTransaction(hash types.Hash) {
 }
 
 func testConvertByTokenTransferEvent() {
-	ttes, err := richClient.GetAccountTokenTransfers("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302", &config.ERC20Address, 1, 10)
+	ttes, err := richClient.GetAccountTokenTransfers(client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), &config.ERC20Address, 1, 10)
 	if err != nil {
 		panic(err)
 	}
@@ -68,7 +71,7 @@ func testConvertByTokenTransferEvent() {
 
 func testConvertByUnsignedTransaction() {
 
-	unsignedTx, err := richClient.CreateSendTokenTransaction(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), types.Address("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC20Address)
+	unsignedTx, err := richClient.CreateSendTokenTransaction(client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), client.MustNewAddress("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC20Address)
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +81,7 @@ func testConvertByUnsignedTransaction() {
 	txdictBase := converter.ConvertByUnsignedTransaction(unsignedTx)
 	fmt.Printf("- Convert erc20 UnsignedTransaction \n%v\nto TxDictBase done:\n%+v\n\n", context.JsonFmt(unsignedTx), context.JsonFmt(txdictBase))
 
-	unsignedTx, err = richClient.CreateSendTokenTransaction(types.Address("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), types.Address("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC777Address)
+	unsignedTx, err = richClient.CreateSendTokenTransaction(client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"), client.MustNewAddress("0x1a6048c1d81190c9a3555d0a06d0699663c4ddf0"), types.NewBigInt(10), &config.ERC777Address)
 	if err != nil {
 		panic(err)
 	}
@@ -89,9 +92,11 @@ func testConvertByUnsignedTransaction() {
 
 func testConvertByUnsignedTransactionWithoutNetwork() {
 	data, _ := hex.DecodeString("a9059cbb0000000000000000000000001a6048c1d81190c9a3555d0a06d0699663c4ddf0000000000000000000000000000000000000000000000000000000000000000a")
+	from := client.MustNewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302")
+	to := client.MustNewAddress("0x8c3da77847b4efa454e6081dd4e898265d1787a2")
 	unsignedTx := &types.UnsignedTransaction{
 		UnsignedTransactionBase: types.UnsignedTransactionBase{
-			From:         types.NewAddress("0x19f4bcf113e0b896d9b34294fd3da86b4adf0302"),
+			From:         &from,
 			Nonce:        types.NewBigInt(0x9),
 			GasPrice:     types.NewBigInt(0x3b9aca00),
 			Gas:          types.NewBigInt(0x8fb1),
@@ -99,7 +104,7 @@ func testConvertByUnsignedTransactionWithoutNetwork() {
 			StorageLimit: types.NewUint64(0x40),
 			EpochHeight:  types.NewUint64(0x1eb1ea),
 			ChainID:      types.NewUint(0x1)},
-		To:   types.NewAddress("0x8c3da77847b4efa454e6081dd4e898265d1787a2"),
+		To:   &to,
 		Data: hexutil.Bytes(data),
 	}
 

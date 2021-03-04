@@ -26,7 +26,8 @@ var (
 	erc777Contract *sdk.Contract
 	am             *sdk.AccountManager
 	defaultAccount *types.Address
-	nextNonce      *big.Int
+	nextNonce      *hexutil.Big
+	networkID      uint32
 )
 var config exampletypes.Config
 
@@ -68,7 +69,12 @@ func initClient() {
 		panic(err)
 	}
 
-	am = sdk.NewAccountManager(path.Join(currentDir, "keystore"))
+	networkID, err = client.GetNetworkID()
+	if err != nil {
+		panic(err)
+	}
+
+	am = sdk.NewAccountManager(path.Join(currentDir, "keystore"), networkID)
 	client.SetAccountManager(am)
 	defaultAccount, err = am.GetDefault()
 	if err != nil {
@@ -126,7 +132,7 @@ func sendCfx() {
 		}
 	}
 
-	utx, err := client.CreateUnsignedTransaction(*defaultAccount, types.Address("0x10697db19a51514f83a7cc00cea2db0676724270"), types.NewBigInt(100), nil)
+	utx, err := client.CreateUnsignedTransaction(*defaultAccount, client.MustNewAddress("0x10697db19a51514f83a7cc00cea2db0676724270"), types.NewBigInt(100), nil)
 	utx.Nonce = getNextNonceAndIncrease()
 	if err != nil {
 		panic(err)
@@ -147,22 +153,22 @@ func sendTokens() {
 		if txs == nil {
 			txs = make([]types.Hash, 0)
 		}
-		for i := int64(0); i < 5; i++ {
+		for i := int64(0); i < 3; i++ {
 			if len(txs) <= int(i) {
 				txs = append(txs, types.Hash("0x"))
 			}
 			tx, err := client.GetTransactionByHash(txs[i])
-			if err != nil || tx == nil || *tx.To != *contract.Address {
-				to := types.Address("0x10697db19a51514f83a7cc00cea2db0676724270")
+			if err != nil || tx == nil || tx.To.Equals(contract.Address) {
+				to := client.MustNewAddress("0x10697db19a51514f83a7cc00cea2db0676724270")
 				options := &types.ContractMethodSendOption{
 					Nonce: getNextNonceAndIncrease(),
 				}
-				var txhash *types.Hash
+				var txhash types.Hash
 				switch contractType {
 				case "ERC20":
-					txhash, err = contract.SendTransaction(options, "transfer", to.ToCommonAddress(), big.NewInt(1))
+					txhash, err = contract.SendTransaction(options, "transfer", to.MustGetCommonAddress(), big.NewInt(1))
 				case "ERC777":
-					txhash, err = contract.SendTransaction(options, "send", to.ToCommonAddress(), big.NewInt(1), []byte{})
+					txhash, err = contract.SendTransaction(options, "send", to.MustGetCommonAddress(), big.NewInt(1), []byte{})
 				default:
 					panic("unrecognized contract type:" + contractType)
 				}
@@ -171,7 +177,7 @@ func sendTokens() {
 				if err != nil {
 					panic(err)
 				}
-				txs[i] = *txhash
+				txs[i] = txhash
 				fmt.Printf("send %v transfer done: %v\n", contractType, txhash)
 			}
 		}
@@ -185,7 +191,7 @@ func sendTokens() {
 	// }
 	config.ERC20Transactions = batchSend("ERC20", erc20Contract, config.ERC20Transactions)
 	config.ERC777Transactions = batchSend("ERC777", erc777Contract, config.ERC777Transactions)
-	WaitPacked(config.ERC777Transactions[4])
+	WaitPacked(config.ERC777Transactions[2])
 	fmt.Println("- to send tokens if tx not valid done")
 }
 
@@ -205,19 +211,19 @@ func saveConfig() {
 }
 
 func deployIfNotExist(contractAddress types.Address, abiFilePath string, bytecodeFilePath string) *sdk.Contract {
-	isAddress := len(contractAddress) == 42 && (contractAddress)[0:2] == "0x"
+	// isAddress := len(contractAddress) == 42 && (contractAddress)[0:2] == "0x"
 	isCodeExist := false
 
-	if isAddress {
-		code, err := client.GetCode(contractAddress)
-		// fmt.Printf("err: %v,code:%v\n", err, len(code))
-		if err == nil && len(code) > 0 && code != "0x" {
-			isCodeExist = true
-		}
+	// if isAddress {
+	code, err := client.GetCode(contractAddress)
+	// fmt.Printf("err: %v,code:%v\n", err, len(code))
+	if err == nil && len(code) > 0 {
+		isCodeExist = true
 	}
+	// }
 
-	fmt.Printf("%v isAddress:%v, isCodeExist:%v\n", contractAddress, isAddress, isCodeExist)
-	if isAddress && isCodeExist {
+	fmt.Printf("%v isCodeExist:%v\n", contractAddress, isCodeExist)
+	if isCodeExist {
 		abi, err := ioutil.ReadFile(abiFilePath)
 		if err != nil {
 			panic(err)
@@ -266,8 +272,9 @@ func deployContractWithConstroctor(abiFile string, bytecodeFile string, params .
 
 func getNextNonceAndIncrease() *hexutil.Big {
 	// println("current in:", nextNonce.String())
-	currentNonce := big.NewInt(0).SetBytes(nextNonce.Bytes())
-	nextNonce = nextNonce.Add(nextNonce, big.NewInt(1))
+	currentNonce := big.NewInt(0).SetBytes(nextNonce.ToInt().Bytes())
+	_nextNonce := big.NewInt(0).Add(nextNonce.ToInt(), big.NewInt(1))
+	nextNonce = types.NewBigIntByRaw(_nextNonce)
 	// println("current out:", currentNonce.String())
 	return types.NewBigIntByRaw(currentNonce)
 }

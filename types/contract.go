@@ -6,10 +6,12 @@ package richtypes
 
 import (
 	"fmt"
+	"math/big"
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
@@ -123,7 +125,7 @@ func (c *Contract) GetContractTypeByABI() ContractType {
 // }
 
 // DecodeEvent decodes log into instance of event params struct
-func (contrete *ContractElemConcrete) DecodeEvent(log *types.LogEntry) (eventParmsPtr interface{}, err error) {
+func (contrete *ContractElemConcrete) DecodeEvent(log *types.Log) (eventParmsPtr interface{}, err error) {
 	switch contrete.ElemType {
 	case TransferEvent:
 		switch contrete.ContractType {
@@ -161,15 +163,29 @@ func (contrete *ContractElemConcrete) DecodeFunction(data []byte) (functionParms
 
 	switch contrete.ElemType {
 	case TransferFunction:
+		var result []interface{}
 		switch contrete.ContractType {
 		case ERC20:
 			params := ERC20TokenTransferFunctionParams{}
-			err = method.Inputs.Unpack(&params, data[4:])
+			result, err = method.Inputs.Unpack(data[4:])
+			if err != nil {
+				return nil, err
+			}
+
+			params.To = result[0].(common.Address)
+			params.Value = result[1].(*big.Int)
 			functionParmsPtr = &params
 			return
 		case ERC777:
 			params := ERC777TokenTransferFunctionParams{}
-			err = method.Inputs.Unpack(&params, data[4:])
+			result, err = method.Inputs.Unpack(data[4:])
+			if err != nil {
+				return nil, err
+			}
+
+			params.To = result[0].(common.Address)
+			params.Amount = result[1].(*big.Int)
+			params.Data = result[2].([]byte)
 			functionParmsPtr = &params
 			return
 		}

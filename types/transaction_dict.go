@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // TxDictBase is another representation of unsigned transaction which is designed for bitpie wallet
@@ -33,10 +34,10 @@ type TxDict struct {
 
 // TxUnit represents a transaction unit
 type TxUnit struct {
-	Value           *big.Int       `json:"value"`
-	Address         *types.Address `json:"address"`
-	Sn              uint64         `json:"sn"`
-	TokenCode       string         `json:"token_code,omitempty"`
-	TokenIdentifier *types.Address `json:"token_identifier"`
-	TokenDecimal    uint64         `json:"token_decimal,omitempty"`
+	Value           *big.Int        `json:"value"`
+	Address         *common.Address `json:"address"`
+	Sn              uint64          `json:"sn"`
+	TokenCode       string          `json:"token_code,omitempty"`
+	TokenIdentifier *types.Address  `json:"token_identifier"`
+	TokenDecimal    uint64          `json:"token_decimal,omitempty"`
 }
