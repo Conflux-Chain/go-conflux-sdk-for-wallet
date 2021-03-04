@@ -10,6 +10,7 @@ import (
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	richconstants "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/decoder"
+	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/helper"
 	walletinterface "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/interface"
 	richtypes "github.com/Conflux-Chain/go-conflux-sdk-for-wallet/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
@@ -78,7 +79,7 @@ func (tc *TxDictConverter) ConvertByTokenTransferEvent(tte *richtypes.TokenTrans
 	txDict.Outputs = []richtypes.TxUnit{
 		{
 			Value:           value,
-			Address:         &tte.To,
+			Address:         tte.To,
 			Sn:              0,
 			TokenCode:       tte.TokenSymbol,
 			TokenDecimal:    tte.TokenDecimal,
@@ -104,7 +105,8 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 	}
 
 	sn := uint64(0)
-	tc.fillTxDictByTx(txDict, &tx.From, tx.To, tx.Value, &sn)
+
+	tc.fillTxDictByTx(txDict, tx.From.MustGetCommonAddress(), helper.MustGetCommonAddressPtr(tx.To), tx.Value, &sn)
 	// fmt.Println("create txdict done")
 
 	// no log will produced when transaction to is normal account or nil, so return
@@ -190,13 +192,13 @@ func (tc *TxDictConverter) createTxDict(tx *types.Transaction, revertRate *big.F
 	return txDict, nil
 }
 
-func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from *types.Address, to *types.Address, value *hexutil.Big, sn *uint64) {
+func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from common.Address, to *common.Address, value *hexutil.Big, sn *uint64) {
 
 	_value := big.Int(*value)
 
 	input := richtypes.TxUnit{
 		Value:        &_value,
-		Address:      from,
+		Address:      &from,
 		Sn:           *sn,
 		TokenCode:    constants.CFXSymbol,
 		TokenDecimal: constants.CFXDecimal,
@@ -251,17 +253,24 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			// get amount or value, if nil that means not token transfer
 			amount, err := getValueOrAmount(eventParams)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "Failed to get value of log %+v", eventParams)
 			}
 
 			paramsV := reflect.ValueOf(eventParams).Elem()
-			from := cfxaddress.MustNewFromCommon(paramsV.FieldByName("From").Interface().(common.Address), tc.networkID)
-			to := cfxaddress.MustNewFromCommon(paramsV.FieldByName("To").Interface().(common.Address), tc.networkID)
+			from, err := cfxaddress.NewFromCommon(paramsV.FieldByName("From").Interface().(common.Address), tc.networkID)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to create address by %v", paramsV.FieldByName("From"))
+			}
+
+			to, err := cfxaddress.NewFromCommon(paramsV.FieldByName("To").Interface().(common.Address), tc.networkID)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to create address by %v", paramsV.FieldByName("To"))
+			}
 
 			//fill to txdict inputs and outputs
 			input := richtypes.TxUnit{
 				Value:           amount,
-				Address:         &from,
+				Address:         helper.MustGetCommonAddressPtr(&from),
 				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: receipt.To,
@@ -269,7 +278,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			}
 			output := richtypes.TxUnit{
 				Value:           amount,
-				Address:         &to,
+				Address:         helper.MustGetCommonAddressPtr(&to),
 				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: receipt.To,
@@ -362,7 +371,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 	txDictBase.Inputs = []richtypes.TxUnit{
 		{
 			Value:        value,
-			Address:      tx.From,
+			Address:      helper.MustGetCommonAddressPtr(tx.From),
 			Sn:           0,
 			TokenCode:    constants.CFXSymbol,
 			TokenDecimal: constants.CFXDecimal,
@@ -372,7 +381,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 	txDictBase.Outputs = []richtypes.TxUnit{
 		{
 			Value:        value,
-			Address:      tx.To,
+			Address:      helper.MustGetCommonAddressPtr(tx.To),
 			Sn:           0,
 			TokenCode:    constants.CFXSymbol,
 			TokenDecimal: constants.CFXDecimal,
@@ -401,12 +410,11 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 	// fmt.Printf("get amount done %+v,err:%v\n\n", amount, err)
 	if err == nil {
 		paramsV := reflect.ValueOf(funcParams).Elem()
-		to := cfxaddress.MustNewFromCommon(paramsV.FieldByName("To").Interface().(common.Address), tc.networkID)
+		to := paramsV.FieldByName("To").Interface().(common.Address)
 
 		txDictBase.Inputs = append(txDictBase.Inputs, richtypes.TxUnit{
-
 			Value:           amount,
-			Address:         tx.From,
+			Address:         helper.MustGetCommonAddressPtr(tx.From),
 			Sn:              1,
 			TokenIdentifier: tx.To,
 		},
