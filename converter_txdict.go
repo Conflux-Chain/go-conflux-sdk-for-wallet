@@ -72,7 +72,7 @@ func (tc *TxDictConverter) ConvertByTokenTransferEvent(tte *richtypes.TokenTrans
 			Sn:              0,
 			TokenCode:       tte.TokenSymbol,
 			TokenDecimal:    tte.TokenDecimal,
-			TokenIdentifier: &tte.ContractAddress,
+			TokenIdentifier: tte.ContractAddress,
 		},
 	}
 
@@ -83,7 +83,7 @@ func (tc *TxDictConverter) ConvertByTokenTransferEvent(tte *richtypes.TokenTrans
 			Sn:              0,
 			TokenCode:       tte.TokenSymbol,
 			TokenDecimal:    tte.TokenDecimal,
-			TokenIdentifier: &tte.ContractAddress,
+			TokenIdentifier: tte.ContractAddress,
 		},
 	}
 	return txDict, nil
@@ -130,7 +130,8 @@ func (tc *TxDictConverter) ConvertByTransaction(tx *types.Transaction, revertRat
 			break
 		}
 		time.Sleep(time.Second)
-		fmt.Printf("receipt of %v : %+v\n", tx.Hash, receipit)
+		// fmt.Printf("receipt of %v : %+v\n", tx.Hash, receipit)
+		// debug.PrintStack()
 	}
 	if receipit == nil {
 		msg := fmt.Sprintf("convert failed, transaction %v is not be packed with in 5 seconds", tx.Hash)
@@ -196,9 +197,11 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from common.
 
 	_value := big.Int(*value)
 
+	_from := helper.MustNewCfxAddressPtr(&from, tc.networkID)
+	_to := helper.MustNewCfxAddressPtr(to, tc.networkID)
 	input := richtypes.TxUnit{
 		Value:        &_value,
-		Address:      &from,
+		Address:      _from,
 		Sn:           *sn,
 		TokenCode:    constants.CFXSymbol,
 		TokenDecimal: constants.CFXDecimal,
@@ -206,7 +209,7 @@ func (tc *TxDictConverter) fillTxDictByTx(txDict *richtypes.TxDict, from common.
 
 	output := richtypes.TxUnit{
 		Value:        &_value,
-		Address:      to,
+		Address:      _to,
 		Sn:           *sn,
 		TokenCode:    constants.CFXSymbol,
 		TokenDecimal: constants.CFXDecimal,
@@ -270,7 +273,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			//fill to txdict inputs and outputs
 			input := richtypes.TxUnit{
 				Value:           amount,
-				Address:         helper.MustGetCommonAddressPtr(&from),
+				Address:         &from,
 				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: receipt.To,
@@ -278,7 +281,7 @@ func (tc *TxDictConverter) fillTxDictByTxReceipt(txDict *richtypes.TxDict, recei
 			}
 			output := richtypes.TxUnit{
 				Value:           amount,
-				Address:         helper.MustGetCommonAddressPtr(&to),
+				Address:         &to,
 				Sn:              *sn,
 				TokenCode:       tokenInfo.TokenSymbol,
 				TokenIdentifier: receipt.To,
@@ -371,7 +374,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 	txDictBase.Inputs = []richtypes.TxUnit{
 		{
 			Value:        value,
-			Address:      helper.MustGetCommonAddressPtr(tx.From),
+			Address:      tx.From,
 			Sn:           0,
 			TokenCode:    constants.CFXSymbol,
 			TokenDecimal: constants.CFXDecimal,
@@ -381,7 +384,7 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 	txDictBase.Outputs = []richtypes.TxUnit{
 		{
 			Value:        value,
-			Address:      helper.MustGetCommonAddressPtr(tx.To),
+			Address:      tx.To,
 			Sn:           0,
 			TokenCode:    constants.CFXSymbol,
 			TokenDecimal: constants.CFXDecimal,
@@ -414,14 +417,14 @@ func (tc *TxDictConverter) ConvertByUnsignedTransaction(tx *types.UnsignedTransa
 
 		txDictBase.Inputs = append(txDictBase.Inputs, richtypes.TxUnit{
 			Value:           amount,
-			Address:         helper.MustGetCommonAddressPtr(tx.From),
+			Address:         tx.From,
 			Sn:              1,
 			TokenIdentifier: tx.To,
 		},
 		)
 		txDictBase.Outputs = append(txDictBase.Outputs, richtypes.TxUnit{
 			Value:           amount,
-			Address:         &to,
+			Address:         helper.MustNewCfxAddressPtr(&to, tc.networkID),
 			Sn:              1,
 			TokenIdentifier: tx.To,
 		})

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Conflux-Chain/go-conflux-sdk/types"
 	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -40,6 +41,14 @@ func MustGetCommonAddressPtr(address *cfxaddress.Address) *common.Address {
 	if address == nil {
 		return nil
 	}
-	_addr := address.MustGetCommonAddress()
-	return &_addr
+	commonAddr := address.MustGetCommonAddress()
+	return &commonAddr
+}
+
+func MustNewCfxAddressPtr(commonAddress *common.Address, networkID uint32) *types.Address {
+	if commonAddress == nil {
+		return nil
+	}
+	cfxAddr := cfxaddress.MustNewFromCommon(*commonAddress, networkID)
+	return &cfxAddr
 }

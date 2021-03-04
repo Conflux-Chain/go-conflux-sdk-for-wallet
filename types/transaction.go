@@ -5,7 +5,6 @@
 package richtypes
 
 import (
-	"github.com/Conflux-Chain/go-conflux-sdk-for-wallet/helper"
 	"github.com/Conflux-Chain/go-conflux-sdk/constants"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 )
@@ -45,8 +44,8 @@ func (tx *Transaction) ToTokenTransferEvent() *TokenTransferEvent {
 	var tte TokenTransferEvent
 	tte.TransactionHash = tx.Hash
 	// tte.Status = tx.Status
-	tte.From = tx.From.MustGetCommonAddress()
-	tte.To = helper.MustGetCommonAddressPtr(tx.To)
+	tte.From = tx.From
+	tte.To = tx.To
 	tte.Value = tx.Value
 	tte.Timestamp = tx.Timestamp
 	tte.BlockHash = tx.BlockHash
