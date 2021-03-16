@@ -37,18 +37,23 @@ func NewTxDictConverter(richClient walletinterface.RichClientOperator) (*TxDictC
 		return nil, err
 	}
 
-	networkID, err := richClient.GetClient().GetNetworkID()
-	if err != nil {
-		return nil, err
-	}
-
-	return &TxDictConverter{
+	tc := TxDictConverter{
 		richClient: richClient,
 		tokenCache: make(map[string]*richtypes.Token),
 		decoder:    contractDecoder,
 		mutex:      new(sync.Mutex),
-		networkID:  networkID,
-	}, nil
+		networkID:  cfxaddress.NetowrkTypeMainnetID,
+	}
+
+	if richClient != nil {
+		_networkID, err := richClient.GetClient().GetNetworkID()
+		if err != nil {
+			return nil, err
+		}
+		tc.networkID = _networkID
+	}
+
+	return &tc, nil
 }
 
 // ConvertByTokenTransferEvent converts richtypes.TokenTransferEvent to TxDict.
