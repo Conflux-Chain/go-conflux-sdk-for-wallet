@@ -8,7 +8,6 @@ import (
 	"math/big"
 
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
-	"github.com/Conflux-Chain/go-conflux-sdk/types/cfxaddress"
 )
 
 // Token describes token detail messages, such as erc20, erc777, fanscoin and so on.
@@ -29,8 +28,8 @@ type Token struct {
 // TokenWithBalance describes token with balace information
 type TokenWithBalance struct {
 	Token
-	Balance string `json:"balance"`
-	Address string `json:"address"`
+	Balance string        `json:"balance"`
+	Address types.Address `json:"address"`
 }
 
 // TokenWithBlanceList describes list of token with balance
@@ -57,10 +56,4 @@ type TokenTransferEvent struct {
 type TokenTransferEventList struct {
 	Total uint64               `json:"total"`
 	List  []TokenTransferEvent `json:"list"`
-}
-
-func (tbl *TokenWithBlanceList) FormatAddress() {
-	for i := range tbl.List {
-		tbl.List[i].Address = cfxaddress.FormatAddressStrToHex(tbl.List[i].Address)
-	}
 }
