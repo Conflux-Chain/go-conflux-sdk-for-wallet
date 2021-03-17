@@ -340,7 +340,7 @@ func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, ne
 	rc.contractManager.Get(tokenQueryFullPath, params, &contract.Token)
 
 	contractInfoCaches[contractAddress.String()] = &contract
-	fmt.Printf("get contract %v info", contractAddress)
+
 	return &contract, nil
 }
 
