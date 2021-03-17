@@ -409,8 +409,6 @@ func (rc *RichClient) GetAccountTokens(account types.Address) (*richtypes.TokenW
 		return nil, errors.Wrapf(err, msg)
 	}
 
-	tbs.FormatAddress()
-
 	return &tbs, nil
 }
 
