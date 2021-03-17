@@ -21,10 +21,23 @@ func init() {
 	config = context.Prepare()
 	rc = config.GetRichClient()
 	client = rc.GetClient().(*sdk.Client)
+
+	// config = &exampletypes.Config{}
+	// serverConfig := &richsdk.ServerConfig{
+	// 	CfxScanBackendSchema:   "https",
+	// 	CfxScanBackendAddress:  "confluxscan.io",
+	// 	ContractManagerSchema:  "https",
+	// 	ContractManagerAddress: "confluxscan.io",
+
+	// 	ContractQueryPath: "/v1/contract",
+	// }
+	// client, _ = sdk.NewClient("https://main.confluxrpc.org/v2")
+	// rc = richsdk.NewRichClient(client, serverConfig)
 }
 
 func main() {
 	fmt.Println("\n=======start rich client example=======\n")
+
 	testGetAccountTokenTransfers()
 	testGetAccountTokens()
 	testCreateSendTokenTransaction()
@@ -116,7 +129,7 @@ func testGetTxDictByTxHash() {
 }
 
 func testGetContractInfo() {
-	// config.ERC20Address = config.ERC20Address
+	// config.ERC20Address = cfxaddress.MustNew("cfx:ach3jen9uswtfcas0aemsj8ns8avh05va6vget4f7p")
 	tokenInfo, err := rc.GetContractInfo(config.ERC20Address, true, true)
 	if err != nil {
 		panic(err)

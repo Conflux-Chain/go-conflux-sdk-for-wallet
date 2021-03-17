@@ -49,6 +49,12 @@ type blockAndRevertrate struct {
 	revertRate *big.Float
 }
 
+type contactInfoKey struct {
+	contractAddress string
+	needABI         bool
+	needIcon        bool
+}
+
 // default value of server config
 var (
 	accountTokensPath     = "/v1/token"       // "/api/account/token/list" //cfx scan backend
@@ -68,6 +74,8 @@ var (
 		Address:       "101.201.103.131:8886", //"13.75.69.106:8886",
 		HTTPRequester: &http.Client{},
 	}
+
+	contractInfoCaches map[contactInfoKey]*richtypes.Contract = make(map[contactInfoKey]*richtypes.Contract)
 )
 
 // NewRichClient create new rich client with client and server config.
@@ -303,18 +311,19 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 	return nil, err
 }
 
-var contractInfoCaches map[string]*richtypes.Contract = make(map[string]*richtypes.Contract)
-
 // GetContractInfo returns contract detail infomation, it will contains token info if it is token contract,
 // it will contains abi if set needABI to be true.
 func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, needIcon bool) (*richtypes.Contract, error) {
 	params := make(map[string]interface{})
 
-	cInfoCache := contractInfoCaches[contractAddress.String()]
+	cInfoKey := contactInfoKey{
+		contractAddress: contractAddress.String(),
+		needABI:         needABI,
+		needIcon:        needIcon,
+	}
+	cInfoCache := contractInfoCaches[cInfoKey]
 	if cInfoCache != nil {
-		if (!needIcon || (needIcon && cInfoCache.TokenIcon != "")) && (!needABI || (needABI && cInfoCache.ABI != "")) {
-			return cInfoCache, nil
-		}
+		return cInfoCache, nil
 	}
 
 	fields := []string{}
@@ -339,7 +348,9 @@ func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, ne
 	var tokenQueryFullPath = fmt.Sprintf("%v/%v", tokenQueryBasePath, contractAddress)
 	rc.contractManager.Get(tokenQueryFullPath, params, &contract.Token)
 
-	contractInfoCaches[contractAddress.String()] = &contract
+	contractInfoCaches[cInfoKey] = &contract
+
+	// fmt.Printf("get contract %v\n", cInfoKey)
 
 	return &contract, nil
 }
