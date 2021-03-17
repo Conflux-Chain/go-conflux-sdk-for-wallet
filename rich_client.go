@@ -7,10 +7,8 @@ package walletsdk
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 
@@ -31,13 +29,6 @@ type RichClient struct {
 	cfxScanBackend  *scanServer
 	contractManager *scanServer
 	client          sdk.ClientOperator
-}
-
-// scanServer represents a centralized server
-type scanServer struct {
-	Scheme        string
-	Address       string
-	HTTPRequester sdk.HTTPRequester
 }
 
 // ServerConfig represents cfx-scan-backend and contract-manager configurations, because centralized servers maybe changed.
@@ -136,61 +127,6 @@ func (rc *RichClient) GetClient() sdk.ClientOperator {
 func (rc *RichClient) setHTTPRequester(requester sdk.HTTPRequester) {
 	rc.cfxScanBackend.HTTPRequester = requester
 	rc.contractManager.HTTPRequester = requester
-}
-
-// URL returns url build by schema, host, path and params
-func (s *scanServer) URL(path string, params map[string]interface{}) string {
-	q := url.Values{}
-	for key, val := range params {
-		q.Add(key, fmt.Sprintf("%+v", val))
-	}
-	encodedParams := q.Encode()
-	result := fmt.Sprintf("%+v://%+v%+v?%+v", s.Scheme, s.Address, path, encodedParams)
-	return result
-}
-
-// Get sends a "Get" request and fill the unmarshaled value of field "Result" in response to unmarshaledResult
-func (s *scanServer) Get(path string, params map[string]interface{}, unmarshaledResult interface{}) error {
-	client := s.HTTPRequester
-	// fmt.Println("request url:", s.URL(path, params))
-	rspBytes, err := client.Get(s.URL(path, params))
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err := rspBytes.Body.Close()
-		if err != nil {
-			//fmt.Println("close rsp error", err)
-		}
-	}()
-
-	body, err := ioutil.ReadAll(rspBytes.Body)
-	if err != nil {
-		return err
-	}
-	// fmt.Printf("body:%+v\n\n", string(body))
-
-	// check if error response
-	var rsp richtypes.ErrorResponse
-	err = json.Unmarshal(body, &rsp)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal '%v' to richtypes.ErrorResponse, error:%v", string(body), err.Error())
-	}
-	// fmt.Printf("unmarshaled body: %+v\n\n", rsp)
-
-	if rsp.Code != 0 {
-		msg := fmt.Sprintf("code:%+v, message:%+v", rsp.Code, rsp.Message)
-		return errors.New(msg)
-	}
-
-	// unmarshl to result
-	err = json.Unmarshal(body, unmarshaledResult)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal '%v' to unmarshaledResult, error:%v", string(body), err.Error())
-	}
-	// fmt.Printf("unmarshaled result: %+v\n\n", unmarshaledResult)
-	return nil
 }
 
 // GetAccountTokenTransfers returns address releated transactions,
@@ -367,10 +303,19 @@ func (rc *RichClient) getDataForTransToken(contractType richtypes.ContractType, 
 	return nil, err
 }
 
+var contractInfoCaches map[string]*richtypes.Contract = make(map[string]*richtypes.Contract)
+
 // GetContractInfo returns contract detail infomation, it will contains token info if it is token contract,
 // it will contains abi if set needABI to be true.
 func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, needIcon bool) (*richtypes.Contract, error) {
 	params := make(map[string]interface{})
+
+	cInfoCache := contractInfoCaches[contractAddress.String()]
+	if cInfoCache != nil {
+		if (!needIcon || (needIcon && cInfoCache.TokenIcon != "")) && (!needABI || (needABI && cInfoCache.ABI != "")) {
+			return cInfoCache, nil
+		}
+	}
 
 	fields := []string{}
 	if needIcon {
@@ -393,6 +338,8 @@ func (rc *RichClient) GetContractInfo(contractAddress types.Address, needABI, ne
 	// get token info
 	var tokenQueryFullPath = fmt.Sprintf("%v/%v", tokenQueryBasePath, contractAddress)
 	rc.contractManager.Get(tokenQueryFullPath, params, &contract.Token)
+
+	contractInfoCaches[contractAddress.String()] = &contract
 
 	return &contract, nil
 }
